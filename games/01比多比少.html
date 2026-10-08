@@ -542,10 +542,10 @@
       </div>
 
       <div class="row">
-        <label>進階：打亂數字格</label>
+        <label>進階：僅用數字格作答</label>
         <div>
           <input type="checkbox" id="setShufflePad" />
-          <div class="help">勾選後：左右「1–10數字格」每回合打亂；並且<strong>停用點圈圈</strong>。</div>
+          <div class="help">左右「1–10數字格」每回合皆隨機排列；勾選後<strong>停用點圈圈</strong>。</div>
         </div>
       </div>
 
@@ -907,8 +907,7 @@
     const host = side==='L' ? el.padL : el.padR;
     host.innerHTML = '';
 
-    let nums = Array.from({length:10}, (_,i)=>i+1);
-    if(state.shufflePad) nums = shuffle(nums);
+    const nums = shuffle(Array.from({length:10}, (_,i)=>i+1));
 
     nums.forEach(n=>{
       const b = document.createElement('button');
