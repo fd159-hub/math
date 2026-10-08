@@ -439,7 +439,10 @@
       .topbar{justify-content:flex-start; max-width:none}
       .msg{flex:1 1 100%}
     }
-  </style>
+    #confetti{position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden}
+  #confetti span{position:absolute;top:-20px;width:10px;height:16px;border-radius:3px;animation:confetti-fall 3s ease-in forwards}
+  @keyframes confetti-fall{to{transform:translateY(110vh) rotate(720deg);opacity:0.2}}
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -451,7 +454,7 @@
 
     <div class="topbar">
       <div class="pill">回合：<strong id="roundNow">1</strong> / <strong id="roundMax">5</strong></div>
-      <div class="pill">分數：左 <strong id="scoreL">0</strong>　右 <strong id="scoreR">0</strong></div>
+      <div class="pill">答對 <strong id="correctCount">0</strong> 題　答錯 <strong id="wrongCount">0</strong> 題</div>
       <button class="small" id="btnSettings">老師設定</button>
       <button class="small ghost" id="btnReset">重新開始</button>
     </div>
@@ -651,8 +654,9 @@
     marksL: new Set(),
     marksR: new Set(),
 
-    scoreL: 0,
-    scoreR: 0,
+    correctCount: 0,
+    wrongCount: 0,
+    finished: false,
 
     started: false,       // ✅ 開檔不自動開始
     _autoTimer: null,
@@ -661,8 +665,8 @@
   const el = {
     roundNow: document.getElementById('roundNow'),
     roundMax: document.getElementById('roundMax'),
-    scoreL: document.getElementById('scoreL'),
-    scoreR: document.getElementById('scoreR'),
+    correctCount: document.getElementById('correctCount'),
+    wrongCount: document.getElementById('wrongCount'),
     tries: document.getElementById('tries'),
     autoFlag: document.getElementById('autoFlag'),
 
@@ -786,10 +790,26 @@
     if(state.right > state.left) return 'RIGHT';
     return 'TIE';
   }
-  function award(){
-    if(state.left > state.right){ state.scoreL += 2; return; }
-    if(state.right > state.left){ state.scoreR += 2; return; }
-    state.scoreL += 1; state.scoreR += 1;
+  function clearConfetti(){
+    document.getElementById('confetti')?.remove();
+  }
+  function celebrate(){
+    clearConfetti();
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const layer = document.createElement('div');
+    layer.id = 'confetti';
+    layer.setAttribute('aria-hidden', 'true');
+    const colors = ['#ff6685', '#ffc847', '#67d3a0', '#62b7ff', '#b18aff'];
+    for(let i=0;i<90;i++){
+      const piece = document.createElement('span');
+      piece.style.left = `${Math.random()*100}%`;
+      piece.style.background = colors[i%colors.length];
+      piece.style.animationDelay = `${Math.random()*0.9}s`;
+      piece.style.animationDuration = `${2.3+Math.random()*1.5}s`;
+      layer.appendChild(piece);
+    }
+    document.body.appendChild(layer);
+    setTimeout(()=>layer.remove(), 5000);
   }
 
   function makeTenFrame(){
@@ -982,20 +1002,20 @@
   function updateTop(){
     el.roundNow.textContent = state.round;
     el.roundMax.textContent = state.maxRounds;
-    el.scoreL.textContent = state.scoreL;
-    el.scoreR.textContent = state.scoreR;
+    el.correctCount.textContent = state.correctCount;
+    el.wrongCount.textContent = state.wrongCount;
     el.tries.textContent = state.tries;
     el.autoFlag.textContent = state.autoNextFlip ? '開' : '關';
 
     el.pickL.textContent = state.pickL == null ? '—' : String(state.pickL);
     el.pickR.textContent = state.pickR == null ? '—' : String(state.pickR);
 
-    el.btnFlip.disabled = state.busy || state.revealed;
-    el.btnHide.disabled = state.busy || !state.started;
+    el.btnFlip.disabled = state.finished || state.busy || state.revealed;
+    el.btnHide.disabled = state.finished || state.busy || !state.started;
     el.btnClearPick.disabled = !(state.started && state.revealed && (state.pickL!=null || state.pickR!=null || state.marksL.size>0 || state.marksR.size>0));
 
     const countsCorrect = state.started && state.revealed && (state.pickL === state.left) && (state.pickR === state.right);
-    const canJudge = countsCorrect && !state.busy;
+    const canJudge = countsCorrect && !state.busy && !state.finished;
     el.btnLeftMore.disabled = !canJudge;
     el.btnRightMore.disabled = !canJudge;
     el.btnTie.disabled = !canJudge || !state.allowTie;
@@ -1036,8 +1056,10 @@
 
   function startNewGame(){
     state.round = 1;
-    state.scoreL = 0;
-    state.scoreR = 0;
+    clearConfetti();
+    state.correctCount = 0;
+    state.wrongCount = 0;
+    state.finished = false;
     setInitialScreen();
   }
 
@@ -1057,7 +1079,7 @@
   }
 
   async function flip(){
-    if(state.busy || state.revealed) return;
+    if(state.finished || state.busy || state.revealed) return;
 
     if(!state.started){
       state.started = true;   // ✅ 第一次按翻牌才算開始
@@ -1121,15 +1143,18 @@
     state.round += 1;
 
     if(state.round > state.maxRounds){
-      let result = '';
-      if(state.scoreL > state.scoreR) result = `左邊獲勝！(${state.scoreL} : ${state.scoreR})`;
-      else if(state.scoreR > state.scoreL) result = `右邊獲勝！(${state.scoreR} : ${state.scoreL})`;
-      else result = `平手！(${state.scoreL} : ${state.scoreR})`;
-
-      showOverlay('本局結束', result + '\n\n可按「重新開始」再玩一局。');
-      setMsg('本局結束。');
+      state.round = state.maxRounds;
+      state.finished = true;
+      state.busy = false;
       state.revealed = false;
+      clearAutoTimer();
+      const perfect = state.correctCount === state.maxRounds && state.wrongCount === 0;
+      const result = `答對 ${state.correctCount} 題，答錯 ${state.wrongCount} 題。`;
       updateTop();
+      showOverlay(perfect ? '🎉 全答對！太棒了！' : '本局練習完成',
+        result + '\n每題以第一次判斷計算，答錯後仍可重試練習。\n\n可按「重新開始」再玩一局。');
+      setMsg(perfect ? '🎉 全答對！太棒了！' : result, perfect ? 'good' : '');
+      if(perfect) celebrate();
       return;
     }
 
@@ -1150,10 +1175,15 @@
     state.tries += 1;
 
     const cmpOK = (choice === correctCompare());
+    if(state.tries === 1){
+      if(cmpOK) state.correctCount += 1;
+      else state.wrongCount += 1;
+    }
     updateTop();
 
     if(cmpOK){
-      award();
+      state.busy = true;
+      updateTop();
       setMsg('✅ 答對了！', 'good');
       beep(523,0.07); setTimeout(()=>beep(659,0.08),90);
 
@@ -1172,13 +1202,13 @@
       return;
     }
 
-    award();
+    state.busy = true;
     const ans = correctCompare();
     setMsg('公布答案並進入下一回合。', 'bad');
     showOverlay('公布答案',
       `正確數量：左=${state.left}、右=${state.right}\n` +
       `正確判斷：${ans==='LEFT'?'左邊多':ans==='RIGHT'?'右邊多':'一樣多'}\n` +
-      `本回合已結算分數。`
+      `本題記為答錯；下題繼續加油！`
     );
     updateTop();
 
