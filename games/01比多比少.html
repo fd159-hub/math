@@ -442,6 +442,9 @@
     #confetti{position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden}
   #confetti span{position:absolute;top:-20px;width:10px;height:16px;border-radius:3px;animation:confetti-fall 3s ease-in forwards}
   @keyframes confetti-fall{to{transform:translateY(110vh) rotate(720deg);opacity:0.2}}
+  .scatterFrame{position:relative;width:100%;max-width:270px;aspect-ratio:1;background:#fff;border:2px solid rgba(0,0,0,.15);border-radius:12px;overflow:hidden;flex-shrink:0}
+  .scatterFrame .dot{width:12%;height:12%;pointer-events:auto;cursor:pointer}
+  body.adv .scatterFrame .dot{cursor:default}
 </style>
 </head>
 <body>
@@ -533,6 +536,17 @@
             <option value="10">10 回合</option>
           </select>
           <div class="help">回合越多，練習越久。</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <label for="setDotLayout">難度選擇</label>
+        <div>
+          <select id="setDotLayout">
+            <option value="frame">簡單：十格框</option>
+            <option value="scatter">挑戰：圓點隨機分布</option>
+          </select>
+          <div class="help">挑戰模式：紅圓點散布在方框內，沒有小格子，且不互相重疊。</div>
         </div>
       </div>
 
@@ -641,6 +655,7 @@
 
     autoNextFlip: true,   // ✅ 恢復可用
     shufflePad: false,
+    dotLayout: 'frame',
 
     left: null,
     right: null,
@@ -698,6 +713,7 @@
 
     dlg: document.getElementById('dlg'),
     setRounds: document.getElementById('setRounds'),
+    setDotLayout: document.getElementById('setDotLayout'),
     setAllowTie: document.getElementById('setAllowTie'),
     setShufflePad: document.getElementById('setShufflePad'),
     setAssist: document.getElementById('setAssist'),
@@ -826,10 +842,43 @@
     }
     return frame;
   }
-  function buildTenWrap(){
+  function makeScatterFrame(value){
+    const frame = document.createElement('div');
+    frame.className = 'scatterFrame';
+    const points = [];
+    for(let i=0;i<value;i++){
+      let point;
+      for(let attempt=0;attempt<500;attempt++){
+        const candidate = {x:9+Math.random()*82, y:9+Math.random()*82};
+        if(points.every(p=>Math.hypot(p.x-candidate.x,p.y-candidate.y)>=19)){
+          point = candidate;
+          break;
+        }
+      }
+      // Bounded fallback: choose the roomiest position, without visible grid cells.
+      if(!point){
+        let bestDistance = -1;
+        for(let x=9;x<=91;x+=2){
+          for(let y=9;y<=91;y+=2){
+            const distance = Math.min(...points.map(p=>Math.hypot(p.x-x,p.y-y)));
+            if(distance>bestDistance){ bestDistance=distance; point={x,y}; }
+          }
+        }
+      }
+      points.push(point);
+      const dot = document.createElement('div');
+      dot.className = 'dot';
+      dot.dataset.idx = String(i);
+      dot.style.left = `${point.x}%`;
+      dot.style.top = `${point.y}%`;
+      frame.appendChild(dot);
+    }
+    return frame;
+  }
+  function buildTenWrap(value){
     const wrap = document.createElement('div');
     wrap.className = 'tenWrap';
-    wrap.appendChild(makeTenFrame());
+    wrap.appendChild(state.dotLayout==='scatter' ? makeScatterFrame(value) : makeTenFrame());
     return wrap;
   }
   function getDots(cardEl){
@@ -876,7 +925,7 @@
     cardEl.className = 'card';
     if(state.showNumber) cardEl.classList.add('show-number');
 
-    const ten = buildTenWrap();
+    const ten = buildTenWrap(value);
     cardEl.innerHTML = '';
     cardEl.appendChild(ten);
 
@@ -885,7 +934,7 @@
     badge.textContent = String(value);
     cardEl.appendChild(badge);
 
-    ten.querySelectorAll('.cell').forEach(cell=>{
+    ten.querySelectorAll(state.dotLayout==='scatter' ? '.dot' : '.cell').forEach(cell=>{
       cell.addEventListener('click', ()=>{
         if(!state.started) return;
         if(!state.revealed || state.busy) return;
@@ -1218,6 +1267,7 @@
 
   function applySettings(){
     state.maxRounds = parseInt(el.setRounds.value, 10);
+    state.dotLayout = el.setDotLayout.value;
     state.allowTie = !!el.setAllowTie.checked;
     state.shufflePad = !!el.setShufflePad.checked;
 
@@ -1252,6 +1302,7 @@
 
   el.btnSettings.addEventListener('click', ()=>{
     el.setRounds.value = String(state.maxRounds);
+    el.setDotLayout.value = state.dotLayout;
     el.setAllowTie.checked = state.allowTie;
     el.setShufflePad.checked = state.shufflePad;
     el.setAssist.checked = state.assist;
