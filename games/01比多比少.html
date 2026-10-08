@@ -440,7 +440,8 @@
       .msg{flex:1 1 100%}
     }
     #confetti{position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden}
-  #confetti span{position:absolute;top:-20px;width:10px;height:16px;border-radius:3px;animation:confetti-fall 3s ease-in forwards}
+  #confetti span{position:absolute;top:0;width:14px;height:20px;border-radius:3px;animation:confetti-fall 5s ease-in forwards}
+  #confetti.still span{animation:none !important;transform:rotate(25deg)}
   @keyframes confetti-fall{to{transform:translateY(110vh) rotate(720deg);opacity:0.2}}
   .scatterFrame{position:relative;width:100%;max-width:270px;aspect-ratio:1;background:#fff;border:2px solid rgba(0,0,0,.15);border-radius:12px;overflow:hidden;flex-shrink:0}
   .scatterFrame .dot{width:12%;height:12%;pointer-events:auto;cursor:pointer}
@@ -634,6 +635,7 @@
     <h3 id="ovTitle">提示</h3>
     <p id="ovText">內容</p>
     <div class="row2">
+      <button id="btnCelebrate" hidden>🎊 再灑花一次</button>
       <button id="ovOk" class="primary">知道了</button>
     </div>
   </div>
@@ -729,6 +731,7 @@
     ovTitle: document.getElementById('ovTitle'),
     ovText: document.getElementById('ovText'),
     ovOk: document.getElementById('ovOk'),
+    btnCelebrate: document.getElementById('btnCelebrate'),
   };
 
   // sound
@@ -759,7 +762,7 @@
     el.ovText.textContent = text;
     el.overlay.style.display = 'flex';
   }
-  function hideOverlay(){ el.overlay.style.display = 'none'; }
+  function hideOverlay(){ el.overlay.style.display = 'none'; el.btnCelebrate.hidden = true; }
 
   async function flashCenter(text, ms=800){
     el.countdownNum.textContent = text;
@@ -811,21 +814,23 @@
   }
   function celebrate(){
     clearConfetti();
-    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const layer = document.createElement('div');
     layer.id = 'confetti';
+    if(reducedMotion) layer.classList.add('still');
     layer.setAttribute('aria-hidden', 'true');
     const colors = ['#ff6685', '#ffc847', '#67d3a0', '#62b7ff', '#b18aff'];
     for(let i=0;i<90;i++){
       const piece = document.createElement('span');
-      piece.style.left = `${Math.random()*100}%`;
+      piece.style.left = `${2+Math.random()*96}%`;
+      piece.style.top = `${Math.random()*45}%`;
       piece.style.background = colors[i%colors.length];
-      piece.style.animationDelay = `${Math.random()*0.9}s`;
-      piece.style.animationDuration = `${2.3+Math.random()*1.5}s`;
+      piece.style.animationDelay = `${Math.random()*0.5}s`;
+      piece.style.animationDuration = `${4+Math.random()*2}s`;
       layer.appendChild(piece);
     }
     document.body.appendChild(layer);
-    setTimeout(()=>layer.remove(), 5000);
+    setTimeout(()=>layer.remove(), 8000);
   }
 
   function makeTenFrame(){
@@ -1106,6 +1111,7 @@
   function startNewGame(){
     state.round = 1;
     clearConfetti();
+    el.btnCelebrate.hidden = true;
     state.correctCount = 0;
     state.wrongCount = 0;
     state.finished = false;
@@ -1203,6 +1209,7 @@
       showOverlay(perfect ? '🎉 全答對！太棒了！' : '本局練習完成',
         result + '\n每題以第一次判斷計算，答錯後仍可重試練習。\n\n可按「重新開始」再玩一局。');
       setMsg(perfect ? '🎉 全答對！太棒了！' : result, perfect ? 'good' : '');
+      el.btnCelebrate.hidden = !perfect;
       if(perfect) celebrate();
       return;
     }
@@ -1319,6 +1326,7 @@
     applySettings();
   });
 
+  el.btnCelebrate.addEventListener('click', celebrate);
   el.ovOk.addEventListener('click', hideOverlay);
   el.overlay.addEventListener('click', (e)=>{
     if(e.target === el.overlay) hideOverlay();
