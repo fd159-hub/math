@@ -1,0 +1,1113 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>湊10配對翻牌（單人／雙人｜十格框｜iPad 離線）</title>
+  <style>
+    /* 風格對齊「比多少」：色票、按鈕、面板、陰影、圓角 */
+    :root{
+      --bg:#faf7f2;
+      --card:#ffffff;
+      --ink:#222;
+      --muted:#666;
+      --line:#d8d2c7;
+      --accent:#ff7a3d;
+      --good:#1a7f37;
+      --bad:#b42318;
+      --shadow: 0 10px 24px rgba(0,0,0,.10);
+      --radius:18px;
+      --tableA:#46b8a6;
+      --tableB:#2ea693;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family: system-ui,-apple-system,"Segoe UI",Arial;
+      background: radial-gradient(1200px 800px at 30% 10%, #fff, var(--bg));
+      color:var(--ink);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .wrap{max-width:1100px; margin:0 auto; padding:16px;}
+    header{
+      display:flex; gap:12px; align-items:center; justify-content:space-between;
+      margin-bottom:12px;
+      flex-wrap:wrap;
+    }
+    .title{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;}
+    h1{margin:0; font-size:20px}
+    .sub{color:var(--muted); font-size:14px}
+    .topbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:flex-end;}
+    .pill{
+      background:#fff; border:1px solid var(--line); border-radius:999px;
+      padding:8px 10px; font-size:14px; box-shadow: 0 2px 10px rgba(0,0,0,.05);
+      display:flex; gap:8px; align-items:center;
+      white-space:nowrap;
+    }
+    .pill strong{font-weight:900}
+    button{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:14px;
+      padding:10px 12px;
+      font-size:16px;
+      cursor:pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,.06);
+      user-select:none;
+      touch-action: manipulation;
+    }
+    button:active{transform: translateY(1px)}
+    button.primary{
+      background: linear-gradient(180deg, #ff9a66, var(--accent));
+      border-color: #ff8a52;
+      color:#fff; font-weight:800;
+    }
+    button.ghost{background:transparent}
+    button.small{padding:8px 10px; font-size:14px; border-radius:12px}
+    button:disabled{opacity:.55; cursor:not-allowed}
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:12px;
+      align-items:start;
+    }
+    @media (max-width: 900px){
+      .grid{grid-template-columns:1fr;}
+    }
+
+    .panel{
+      background:rgba(255,255,255,.85);
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:12px;
+    }
+
+    /* 桌面區（綠色桌布） */
+    .table{
+      background: linear-gradient(180deg, var(--tableA), var(--tableB));
+      border-radius: 20px;
+      padding:14px;
+      position:relative;
+      overflow:hidden;
+      min-height: 360px;
+    }
+    .table::before{
+      content:"";
+      position:absolute; inset:-40px -40px auto auto;
+      width:180px; height:180px; border-radius:50%;
+      background: rgba(255,255,255,.10);
+    }
+
+    /* 棋盤 */
+    .board{
+      position:relative;
+      display:grid;
+      gap:10px;
+      z-index:2;
+      user-select:none;
+      touch-action: manipulation;
+    }
+
+    /* 牌（翻牌） */
+    .card{
+      position:relative;
+      border-radius:18px;
+      background:transparent;
+      perspective: 800px;
+      height: clamp(74px, 11.2vw, 118px);
+      min-height:74px;
+    }
+    .inner{
+      position:absolute; inset:0;
+      transform-style:preserve-3d;
+      transition: transform .22s ease;
+      border-radius:18px;
+    }
+    .card.open .inner{transform: rotateY(180deg)}
+    .face{
+      position:absolute; inset:0;
+      backface-visibility:hidden;
+      border-radius:18px;
+      display:flex; align-items:center; justify-content:center;
+      border:2px solid rgba(0,0,0,.08);
+      box-shadow: 0 16px 30px rgba(0,0,0,.18);
+      overflow:hidden;
+    }
+    .back{
+      background: repeating-linear-gradient(45deg, #ffdfcf, #ffdfcf 10px, #ffd0ba 10px, #ffd0ba 20px);
+      color: rgba(0,0,0,.55);
+      font-weight:900;
+      letter-spacing:1px;
+    }
+    .front{
+      transform: rotateY(180deg);
+      background: var(--card);
+      flex-direction:column;
+      gap:10px;
+      padding:10px;
+    }
+    .badge{
+      position:absolute; bottom:6px; right:6px;
+      background:#fff; border:1px solid var(--line);
+      border-radius: 999px;
+      padding:4px 8px;
+      font-size:12px; font-weight:900;
+      color: var(--accent);
+      display:none;
+      z-index:5;
+    }
+    .card.show-number .badge{display:block}
+
+    .matched .front{
+      background: linear-gradient(180deg, #f2fff6, #ffffff);
+      border-color: rgba(26,127,55,.20);
+    }
+    .matched .back{
+      filter: grayscale(.2) brightness(.98);
+    }
+    .matched::after{
+      content:"✓";
+      position:absolute; top:6px; left:6px;
+      width:20px; height:20px;
+      border-radius:999px;
+      background: rgba(26,127,55,.16);
+      border:1px solid rgba(26,127,55,.25);
+      display:flex; align-items:center; justify-content:center;
+      font-weight:1000;
+      font-size:13px; color: var(--good);
+      z-index:6;
+    }
+    .locked{pointer-events:none}
+
+    /* 十格框（同「比多少」的 cell/dot 尺寸邏輯，避免 iPad 重疊） */
+    .tenWrap{
+      width: 96%;
+      height: 84%;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      align-items:center;
+      justify-content:center;
+    }
+    .tenFrame{
+      width: 100%;
+      max-width: 260px;
+      aspect-ratio: 5 / 2;
+      background: #fff;
+      border: 2px solid rgba(0,0,0,.10);
+      border-radius: 0;
+      overflow:hidden;
+      display:grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+    }
+    .cell{
+      position:relative;
+      border-right: 1px solid rgba(0,0,0,.10);
+      border-bottom: 1px solid rgba(0,0,0,.10);
+    }
+    .cell:nth-child(5),
+    .cell:nth-child(10){ border-right:none; }
+    .cell:nth-last-child(-n+5){ border-bottom:none; }
+
+    .dot{
+      position:absolute;
+      left:50%; top:50%;
+      transform: translate(-50%,-50%) scale(.92);
+      /* iPad 小卡面：點加大但保留留白，易辨識 */
+      width: clamp(14px, 62%, 26px);
+      height: clamp(14px, 62%, 26px);
+      border-radius:999px;
+      background:#ff6b6b;
+      border: 2px solid rgba(255,255,255,.88);
+      box-shadow: 0 1px 0 rgba(0,0,0,.10), inset 0 2px 0 rgba(255,255,255,.45);
+      opacity:0;
+      transition: opacity .12s ease, transform .12s ease;
+      pointer-events:none;
+    }
+    .dot.on{ opacity:1; transform: translate(-50%,-50%) scale(1); }
+
+    /* 狀態列（不遮棋盤） */
+    .status{
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.9);
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .msg{font-weight:900}
+    .msg.good{color:var(--good)}
+    .msg.bad{color:var(--bad)}
+
+    /* 右側資訊框 */
+    .scoreRow{display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:0;}
+    .pbox{
+      border:1px solid var(--line); border-radius: 16px; padding:12px; background:#fff;
+      box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    }
+    .phead{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px;}
+    .pname{font-weight:1000}
+    .psub{color:var(--muted); font-size:13px}
+    .bigScore{font-size:32px; font-weight:1000}
+    .controls{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;}
+
+    /* 選單 / 提示 overlay（沿用「比多少」結構） */
+    .overlayTip{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.35);
+      display:none;
+      align-items:center; justify-content:center;
+      padding:16px;
+      z-index: 50;
+    }
+    .overlayCard{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding:14px;
+      width: min(640px, 92vw);
+      white-space: pre-line;
+    }
+    .overlayCard h3{margin:0 0 8px}
+    .overlayCard p{margin:0 0 10px; color:var(--muted); line-height:1.5; white-space:pre-line;}
+    .overlayCard .row2{display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap}
+
+    /* 設定視窗（dialog） */
+    dialog{
+      border:none; border-radius: 18px; box-shadow: var(--shadow);
+      width:min(780px, 92vw);
+    }
+    .modal{ padding:16px; }
+    .modal h2{margin:0 0 10px; font-size:18px}
+    .rows{display:grid; gap:10px}
+    .row{
+      display:grid;
+      grid-template-columns: 190px 1fr;
+      gap:10px; align-items:center;
+      padding:10px; border:1px solid var(--line); border-radius:14px;
+      background: rgba(255,255,255,.9);
+    }
+    .row label{font-weight:900}
+    select, input[type="checkbox"]{transform: scale(1.1)}
+    input[type="number"]{width:120px}
+    .row .help{color:var(--muted); font-size:13px; margin-top:4px}
+    .modal .foot{display:flex; justify-content:flex-end; gap:10px; margin-top:12px; flex-wrap:wrap}
+  
+    /* ===== 答對/答錯回饋（不遮棋盤） ===== */
+    .flash-good .front{
+      animation: goodGlow .45s ease-out;
+      border-color: rgba(26,127,55,.35) !important;
+    }
+    .flash-bad .front{
+      animation: badGlow .55s ease-out;
+      border-color: rgba(180,35,24,.35) !important;
+    }
+    .shake{
+      animation: shake .35s ease-in-out;
+    }
+    @keyframes goodGlow{
+      from{ box-shadow: 0 0 0 rgba(26,127,55,0), 0 16px 30px rgba(0,0,0,.18); }
+      60%{ box-shadow: 0 0 0 8px rgba(26,127,55,.14), 0 16px 30px rgba(0,0,0,.18); }
+      to{ box-shadow: 0 0 0 rgba(26,127,55,0), 0 16px 30px rgba(0,0,0,.18); }
+    }
+    @keyframes badGlow{
+      from{ box-shadow: 0 0 0 rgba(180,35,24,0), 0 16px 30px rgba(0,0,0,.18); }
+      60%{ box-shadow: 0 0 0 8px rgba(180,35,24,.13), 0 16px 30px rgba(0,0,0,.18); }
+      to{ box-shadow: 0 0 0 rgba(180,35,24,0), 0 16px 30px rgba(0,0,0,.18); }
+    }
+    @keyframes shake{
+      0%{ transform: translateX(0); }
+      25%{ transform: translateX(-6px); }
+      50%{ transform: translateX(6px); }
+      75%{ transform: translateX(-4px); }
+      100%{ transform: translateX(0); }
+    }
+
+  
+    /* ===== 24/30格：移除右側資訊，維持卡牌大小（與20格一致） ===== */
+    body.compact .grid{ grid-template-columns: 1fr; }
+    body.compact #sidePanel{ display:none !important; }
+    body.compact .table{ min-height: 460px; } /* 給棋盤更多高度 */
+
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title">
+      <h1>湊10配對翻牌</h1>
+      <div class="sub">單人／雙人｜十格框卡面｜不遮棋盤提示｜離線可用</div>
+    </div>
+    <div class="topbar">
+      <div class="pill">模式：<strong id="modeText">—</strong></div>
+      <div class="pill">回合：<strong id="turnText">—</strong></div>
+      <div class="pill">剩餘：<strong id="remainText">—</strong></div>
+      <div class="pill">提示：<strong id="assistText">關</strong></div>
+      <div class="pill">顯示數字：<strong id="numText">關</strong></div>
+      <button class="small" id="btnMenu">主選單</button>
+      <button class="small" id="btnSettings">老師設定</button>
+      <button class="small ghost" id="btnReset">重新開始</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="table">
+        <div id="board" class="board" aria-label="棋盤"></div>
+      </div>
+
+      <div class="status">
+        <div class="msg" id="msg">請先在「主選單」開始</div>
+        <div class="pill" id="pillInfo">翻牌：<strong id="movesText">0</strong></div>
+      </div>
+
+      <div class="controls">
+        <button class="primary" id="btnRestartRound">本局重來</button>
+        <button id="btnHideInfo" title="小提示：翻到 a 就找 (目標和-a)">小提示</button>
+      </div>
+    </section>
+
+    <section class="panel side" id="sidePanel">
+      <div class="scoreRow">
+        <div class="pbox" id="pboxL">
+          <div class="phead">
+            <div>
+              <div class="pname" id="nameL">玩家 1</div>
+              <div class="psub">配對數</div>
+            </div>
+            <div class="bigScore" id="scoreL">0</div>
+          </div>
+          <div class="psub" id="logL">—</div>
+        </div>
+        <div class="pbox" id="pboxR">
+          <div class="phead">
+            <div>
+              <div class="pname" id="nameR">玩家 2</div>
+              <div class="psub">配對數</div>
+            </div>
+            <div class="bigScore" id="scoreR">0</div>
+          </div>
+          <div class="psub" id="logR">—</div>
+        </div>
+      </div>
+
+      <div class="pbox" style="margin-top:12px;">
+        <div class="phead">
+          <div class="pname">本局紀錄</div>
+          <div class="psub">（方便老師截圖）</div>
+        </div>
+        <div id="history" class="psub" style="line-height:1.7;">尚未開始</div>
+      </div>
+
+      <div class="pbox" style="margin-top:12px;">
+        <div class="pname" style="margin-bottom:6px;">玩法</div>
+        <div class="psub" style="line-height:1.6;">
+          每次翻 2 張，<b>相加等於目標和</b>（預設 10）就收下並得 1 分。<br/>
+          兩人模式：輪流翻牌；若開啟「配對成功可再翻一次」，就不換手。<br/>
+          翻錯會倒數後自動蓋回（提示不遮棋盤）。
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- 主選單 -->
+<div class="overlayTip" id="menu">
+  <div class="overlayCard">
+    <h3>開始遊戲</h3>
+    <p>選擇模式與棋盤大小（離線可用；適配 iPad）。</p>
+    <div class="rows" style="gap:10px">
+      <div class="row">
+        <label>模式</label>
+        <div>
+          <div class="controls" style="margin:0">
+            <button class="primary" id="startSingle">單人</button>
+            <button class="primary" id="startTwo">雙人</button>
+          </div>
+          <div class="help">單人：通關（配完全部）｜雙人：看誰配對多。</div>
+        </div>
+      </div>
+      <div class="row">
+        <label>棋盤大小</label>
+        <div>
+          <select id="setGrid">
+            <option value="4x5">4×5（20 張）</option>
+            <option value="4x6">4×6（24 張）</option>
+            <option value="5x6">5×6（30 張）</option>
+          </select>
+          <div class="help">建議：低年級 4×5；熟練後加大。</div>
+        </div>
+      </div>
+      <div class="row">
+        <label>目標和</label>
+        <div>
+          <input type="number" id="setTarget" min="5" max="20" step="1" value="10" />
+          <div class="help">預設 10（可改成 8、9、12…）。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row2" style="margin-top:12px">
+      <button id="menuClose" class="ghost">先不開始</button>
+      <button id="menuStart" class="primary">開始（單人）</button>
+    </div>
+  </div>
+</div>
+
+<!-- 老師設定（dialog） -->
+<dialog id="dlg">
+  <div class="modal">
+    <h2>老師設定（可依年級調整）</h2>
+    <div class="rows">
+      <div class="row">
+        <label>翻錯蓋回倒數（秒）</label>
+        <div>
+          <input type="number" id="optDelay" min="1" max="5" step="1" value="3" />
+          <div class="help">建議 3 秒；提示不遮棋盤。</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>配對成功可再翻一次</label>
+        <div>
+          <input type="checkbox" id="optExtraTurn" checked />
+          <div class="help">關閉：雙人配對成功也換手（更公平）。</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>提示（逐格點亮）</label>
+        <div>
+          <input type="checkbox" id="optAssist" />
+          <div class="help">開啟後十格框的點會依序亮起（補救用）。</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>點亮速度</label>
+        <div>
+          <select id="optAssistSpeed">
+            <option value="60">很快</option>
+            <option value="80">快</option>
+            <option value="100" selected>中</option>
+            <option value="140">慢</option>
+            <option value="180">很慢</option>
+          </select>
+          <div class="help">逐格點亮每顆間隔（毫秒）。</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>顯示數字</label>
+        <div>
+          <input type="checkbox" id="optShowNumber" />
+          <div class="help">開啟後卡片右下角顯示數字（降低難度）。</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>音效</label>
+        <div>
+          <input type="checkbox" id="optSound" checked />
+          <div class="help">翻牌/配對/翻錯提示音（可關）。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <button class="ghost" id="btnCloseDlg">取消</button>
+      <button class="primary" id="btnApplyDlg">套用並重新開始</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- 通用提示 overlay（結算/公布） -->
+<div class="overlayTip" id="overlay">
+  <div class="overlayCard">
+    <h3 id="ovTitle">提示</h3>
+    <p id="ovText">內容</p>
+    <div class="row2">
+      <button id="ovOk" class="primary">知道了</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /************ Storage ************/
+  const store = {
+    get(key, fallback){
+      try{
+        const v = localStorage.getItem(key);
+        return v === null ? fallback : JSON.parse(v);
+      }catch{ return fallback; }
+    },
+    set(key, value){
+      try{ localStorage.setItem(key, JSON.stringify(value)); }catch{}
+    }
+  };
+
+  /************ Settings ************/
+  const DEFAULTS = {
+    mode: "single",       // single | two
+    grid: "4x5",
+    target: 10,
+    delaySec: 3,
+    extraTurn: true,
+    assist: false,
+    assistDelay: 100,
+    showNumber: false,
+    sound: true
+  };
+  let opt = {...DEFAULTS, ...store.get("sum10.settings.v1", DEFAULTS)};
+  store.set("sum10.settings.v1", opt);
+
+  /************ State ************/
+  const state = {
+    running: false,
+    locked: false,
+    rows: 4,
+    cols: 5,
+    deck: [],         // values
+    openIdx: [],      // indices of currently opened (max 2)
+    matched: new Set(),
+    turn: 0,          // 0/1 for two-player
+    scores: [0,0],
+    moves: 0,
+    history: []
+  };
+
+  /************ Elements ************/
+  const el = {
+    modeText: document.getElementById("modeText"),
+    turnText: document.getElementById("turnText"),
+    remainText: document.getElementById("remainText"),
+    assistText: document.getElementById("assistText"),
+    numText: document.getElementById("numText"),
+
+    msg: document.getElementById("msg"),
+    movesText: document.getElementById("movesText"),
+    pillInfo: document.getElementById("pillInfo"),
+
+    board: document.getElementById("board"),
+    pboxL: document.getElementById("pboxL"),
+    pboxR: document.getElementById("pboxR"),
+    nameL: document.getElementById("nameL"),
+    nameR: document.getElementById("nameR"),
+    scoreL: document.getElementById("scoreL"),
+    scoreR: document.getElementById("scoreR"),
+    logL: document.getElementById("logL"),
+    logR: document.getElementById("logR"),
+    history: document.getElementById("history"),
+
+    btnMenu: document.getElementById("btnMenu"),
+    btnSettings: document.getElementById("btnSettings"),
+    btnReset: document.getElementById("btnReset"),
+    btnRestartRound: document.getElementById("btnRestartRound"),
+    btnHideInfo: document.getElementById("btnHideInfo"),
+
+    // menu
+    menu: document.getElementById("menu"),
+    startSingle: document.getElementById("startSingle"),
+    startTwo: document.getElementById("startTwo"),
+    menuStart: document.getElementById("menuStart"),
+    menuClose: document.getElementById("menuClose"),
+    setGrid: document.getElementById("setGrid"),
+    setTarget: document.getElementById("setTarget"),
+
+    // dlg
+    dlg: document.getElementById("dlg"),
+    optDelay: document.getElementById("optDelay"),
+    optExtraTurn: document.getElementById("optExtraTurn"),
+    optAssist: document.getElementById("optAssist"),
+    optAssistSpeed: document.getElementById("optAssistSpeed"),
+    optShowNumber: document.getElementById("optShowNumber"),
+    optSound: document.getElementById("optSound"),
+    btnCloseDlg: document.getElementById("btnCloseDlg"),
+    btnApplyDlg: document.getElementById("btnApplyDlg"),
+
+    // overlay
+    overlay: document.getElementById("overlay"),
+    ovTitle: document.getElementById("ovTitle"),
+    ovText: document.getElementById("ovText"),
+    ovOk: document.getElementById("ovOk"),
+  };
+
+  /************ Sound (WebAudio) ************/
+  let audioCtx = null;
+  function beep(freq=440, dur=0.08){
+    if(!opt.sound) return;
+    try{
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.frequency.value = freq;
+      o.type = "sine";
+      g.gain.value = 0.06;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start();
+      setTimeout(()=>{ o.stop(); }, dur*1000);
+    }catch(e){}
+  }
+  const sleep = (ms)=> new Promise(r=>setTimeout(r, ms));
+
+  /************ Overlay ************/
+  function showOverlay(title, text){
+    el.ovTitle.textContent = title;
+    el.ovText.textContent = text;
+    el.overlay.style.display = "flex";
+  }
+  function hideOverlay(){
+    el.overlay.style.display = "none";
+  }
+
+  /************ Helpers ************/
+  function parseGrid(g){
+    const [r,c] = g.split("x").map(n=>parseInt(n,10));
+    return {rows:r, cols:c};
+  }
+  function shuffle(arr){
+    for(let i=arr.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [arr[i],arr[j]] = [arr[j],arr[i]];
+    }
+    return arr;
+  }
+  function deckForTarget(cardCount, target){
+    // 產生 cardCount 張牌，保證可配對成 target
+    const pairs = cardCount/2;
+    const vals = [];
+    let a = 0;
+    for(let i=0;i<pairs;i++){
+      const b = target - a;
+      // 限制在 0..target
+      const aa = Math.max(0, Math.min(target, a));
+      const bb = Math.max(0, Math.min(target, b));
+      vals.push(aa, bb);
+      a++;
+      if(a > target) a = 0;
+    }
+    return shuffle(vals);
+  }
+
+  /************ Ten-frame ************/
+  function makeTenFrame(){
+    const frame = document.createElement("div");
+    frame.className = "tenFrame";
+    for(let i=1;i<=10;i++){
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      const dot = document.createElement("div");
+      dot.className = "dot";
+      cell.appendChild(dot);
+      frame.appendChild(cell);
+    }
+    return frame;
+  }
+  function buildTenWrap(value){
+    const wrap = document.createElement("div");
+    wrap.className = "tenWrap";
+    // 0..20 支援（>10 用兩個十格框）
+    const first = Math.min(10, value);
+    const second = Math.max(0, value-10);
+    const f1 = makeTenFrame();
+    wrap.appendChild(f1);
+    if(value > 10){
+      const f2 = makeTenFrame();
+      wrap.appendChild(f2);
+    }
+    return wrap;
+  }
+  function getAllDots(container){
+    return Array.from(container.querySelectorAll(".dot"));
+  }
+  async function revealTenWrap(container, value){
+    const dots = getAllDots(container);
+    const totalToOn = value;
+
+    if(opt.assist){
+      for(let i=0;i<dots.length;i++){
+        if(i < totalToOn){
+          dots[i].classList.add("on");
+          await sleep(opt.assistDelay);
+        }else{
+          dots[i].classList.remove("on");
+        }
+      }
+    }else{
+      dots.forEach((d, idx)=> d.classList.toggle("on", idx < totalToOn));
+    }
+  }
+
+  async function renderCardFront(cardEl, value){
+    cardEl.innerHTML = "";
+    const ten = buildTenWrap(value);
+    cardEl.appendChild(ten);
+
+    const badge = document.createElement("div");
+    badge.className = "badge";
+    badge.textContent = String(value);
+    cardEl.appendChild(badge);
+
+    await revealTenWrap(ten, value);
+  }
+
+  /************ UI ************/
+  function setMessage(text, type=null){
+    el.msg.textContent = text;
+    el.msg.className = "msg" + (type ? (" " + type) : "");
+  }
+
+  function updateTop(){
+    el.modeText.textContent = (opt.mode === "two") ? "雙人" : "單人";
+    el.assistText.textContent = opt.assist ? `開 (${opt.assistDelay}ms)` : "關";
+    el.numText.textContent = opt.showNumber ? "開" : "關";
+
+    if(opt.mode === "two"){
+      el.turnText.textContent = (state.turn === 0) ? "玩家 1" : "玩家 2";
+    }else{
+      el.turnText.textContent = "—";
+    }
+
+    const remainPairs = (state.deck.length - state.matched.size) / 2;
+    el.remainText.textContent = `${remainPairs} 對`;
+    el.movesText.textContent = String(state.moves);
+
+    // 右側顯示/隱藏玩家2區
+    el.pboxR.style.display = (opt.mode === "two") ? "" : "none";
+    el.pboxL.style.display = "";
+    el.nameL.textContent = (opt.mode === "two") ? "玩家 1" : "單人";
+    el.nameR.textContent = "玩家 2";
+
+    el.scoreL.textContent = String(opt.mode === "two" ? state.scores[0] : (state.matched.size/2));
+    el.scoreR.textContent = String(state.scores[1]);
+
+    if(opt.mode === "two"){
+      el.logL.textContent = state.scores[0] ? `目前累積 ${state.scores[0]} 分` : "—";
+      el.logR.textContent = state.scores[1] ? `目前累積 ${state.scores[1]} 分` : "—";
+    }else{
+      el.logL.textContent = (state.matched.size/2) ? `目前配對 ${state.matched.size/2} 對` : "—";
+      el.logR.textContent = "—";
+    }
+
+    el.history.textContent = state.history.length ? state.history.join("　|　") : "尚未開始";
+  }
+
+  function applyCompactLayout(){
+    // 全部棋盤（含20格）都採用「單欄棋盤」：移除右側資訊欄，讓卡牌更大
+    document.body.classList.add("compact");
+    const side = document.getElementById("sidePanel");
+    if(side) side.style.display = "none";
+  }
+
+
+  function setBoardLocked(on){
+    state.locked = on;
+    el.board.classList.toggle("locked", on);
+    // card-level pointer events handled by .locked on board container
+    if(on){
+      el.board.style.pointerEvents = "none";
+    }else{
+      el.board.style.pointerEvents = "auto";
+    }
+  }
+
+  /************ Render board ************/
+  function createCard(i, value){
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.idx = String(i);
+
+    const inner = document.createElement("div");
+    inner.className = "inner";
+
+    const back = document.createElement("div");
+    back.className = "face back";
+    back.innerHTML = `<div style="font-size:16px;font-weight:1000">翻牌</div>`;
+
+    const front = document.createElement("div");
+    front.className = "face front";
+
+    // showNumber 由 card class 控制
+    if(opt.showNumber) card.classList.add("show-number");
+
+    inner.appendChild(back);
+    inner.appendChild(front);
+    card.appendChild(inner);
+
+    card.addEventListener("click", ()=>onCardClick(i), {passive:true});
+    return card;
+  }
+
+  function renderBoard(){
+    const {rows, cols} = parseGrid(opt.grid);
+    state.rows = rows; state.cols = cols;
+    el.board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    el.board.innerHTML = "";
+
+    for(let i=0;i<state.deck.length;i++){
+      const card = createCard(i, state.deck[i]);
+      el.board.appendChild(card);
+    }
+  }
+
+  async function openCard(i){
+    const card = el.board.querySelector(`.card[data-idx="${i}"]`);
+    if(!card) return;
+    if(opt.showNumber) card.classList.add("show-number"); else card.classList.remove("show-number");
+
+    card.classList.add("open");
+    const front = card.querySelector(".front");
+    await renderCardFront(front, state.deck[i]);
+    beep(520, 0.06);
+  }
+
+  function closeCard(i){
+    const card = el.board.querySelector(`.card[data-idx="${i}"]`);
+    if(!card) return;
+    card.classList.remove("open");
+    // front content保留也沒關係；不影響效能與下一次翻開的重畫
+  }
+
+  function markMatched(i){
+    const card = el.board.querySelector(`.card[data-idx="${i}"]`);
+    if(!card) return;
+    card.classList.add("matched");
+  }
+
+  function flashCards(indices, kind){
+    indices.forEach(i=>{
+      const card = el.board.querySelector(`.card[data-idx="${i}"]`);
+      if(!card) return;
+      if(kind === "good"){
+        card.classList.add("flash-good");
+      }else{
+        card.classList.add("flash-bad","shake");
+      }
+      setTimeout(()=>{
+        card.classList.remove("flash-good","flash-bad","shake");
+      }, kind === "good" ? 500 : 650);
+    });
+  }
+
+
+  /************ Game ************/
+  function resetRuntime(){
+    state.running = true;
+    state.openIdx = [];
+    state.matched = new Set();
+    state.turn = 0;
+    state.scores = [0,0];
+    state.moves = 0;
+    state.history = [];
+
+    const count = parseGrid(opt.grid).rows * parseGrid(opt.grid).cols;
+    // 確保偶數
+    const cardCount = (count % 2 === 0) ? count : (count - 1);
+    state.deck = deckForTarget(cardCount, opt.target);
+
+    renderBoard();
+    applyCompactLayout();
+    setBoardLocked(false);
+    setMessage(opt.mode === "two" ? "玩家 1 先手，請翻 2 張牌。" : "開始！翻 2 張牌找湊到目標和。");
+    updateTop();
+  }
+
+  async function onCardClick(i){
+    if(!state.running || state.locked) return;
+    if(state.matched.has(i)) return;
+    if(state.openIdx.includes(i)) return;
+
+    // 上限 2 張
+    if(state.openIdx.length >= 2) return;
+
+    await openCard(i);
+    state.openIdx.push(i);
+
+    if(state.openIdx.length < 2){
+      setMessage("再翻 1 張。");
+      updateTop();
+      return;
+    }
+
+    // 第二張翻完
+    state.moves += 1;
+    setBoardLocked(true);
+
+    const [aIdx, bIdx] = state.openIdx;
+    const a = state.deck[aIdx];
+    const b = state.deck[bIdx];
+    const sum = a + b;
+
+    if(sum === opt.target){
+      // 配對成功
+      state.matched.add(aIdx);
+      state.matched.add(bIdx);
+      markMatched(aIdx);
+      markMatched(bIdx);
+      flashCards([aIdx,bIdx], "good");
+
+      if(opt.mode === "two"){
+        state.scores[state.turn] += 1;
+      }
+
+      state.history.push(`配對成功：${a}+${b}=${opt.target}（${opt.mode==="two" ? ("玩家"+(state.turn+1)) : "單人"}）`);
+      beep(659,0.08); setTimeout(()=>beep(784,0.08),100);
+
+      // 清空本回合
+      state.openIdx = [];
+      updateTop();
+
+      // 結束判定
+      if(state.matched.size >= state.deck.length){
+        endGame();
+        return;
+      }
+
+      // 雙人是否換手
+      if(opt.mode === "two" && !opt.extraTurn){
+        state.turn = state.turn === 0 ? 1 : 0;
+        setMessage(`✅ 答對！配對成功，換 ${state.turn===0 ? "玩家 1" : "玩家 2"}。`, "good");
+      }else{
+        setMessage("✅ 答對！配對成功，再翻一次。", "good");
+      }
+      setBoardLocked(false);
+      updateTop();
+      return;
+    }
+
+    // 翻錯：倒數提示（不遮棋盤）
+    flashCards([aIdx,bIdx], "bad");
+    beep(196,0.08);
+    let left = Math.max(1, Math.min(5, parseInt(opt.delaySec,10) || 3));
+    setMessage(`❌ 答錯：${a}+${b}=${sum}（${left} 秒後蓋回）`, "bad");
+    updateTop();
+
+    const t = setInterval(()=>{
+      left--;
+      if(left > 0){
+        setMessage(`❌ 答錯：${a}+${b}=${sum}（${left} 秒後蓋回）`, "bad");
+      }
+    }, 1000);
+
+    setTimeout(()=>{
+      clearInterval(t);
+      closeCard(aIdx);
+      closeCard(bIdx);
+      state.openIdx = [];
+
+      // 雙人翻錯一定換手
+      if(opt.mode === "two"){
+        state.turn = state.turn === 0 ? 1 : 0;
+        setMessage(`已蓋回，輪到 ${state.turn===0 ? "玩家 1" : "玩家 2"}。`);
+      }else{
+        setMessage("已蓋回，繼續翻牌。");
+      }
+      setBoardLocked(false);
+      updateTop();
+    }, opt.delaySec * 1000);
+  }
+
+  function endGame(){
+    setBoardLocked(true);
+    state.running = false;
+
+    let title = "本局結束";
+    let text = "";
+
+    if(opt.mode === "two"){
+      const a = state.scores[0], b = state.scores[1];
+      if(a>b) title = "玩家 1 獲勝！";
+      else if(b>a) title = "玩家 2 獲勝！";
+      else title = "平手！";
+      text = `玩家 1：${a} 對\n玩家 2：${b} 對\n\n按「重新開始」或回主選單再玩一局。`;
+    }else{
+      const got = state.matched.size/2;
+      const total = state.deck.length/2;
+      title = "通關成功！";
+      text = `配對：${got}/${total}\n翻牌次數：${state.moves}\n\n按「重新開始」或回主選單再玩一局。`;
+    }
+
+    beep(659,0.10); setTimeout(()=>beep(784,0.10),120); setTimeout(()=>beep(988,0.12),260);
+    showOverlay(title, text);
+  }
+
+  /************ Menu / Settings ************/
+  function openMenu(){
+    el.setGrid.value = opt.grid;
+    el.setTarget.value = opt.target;
+    el.menu.style.display = "flex";
+  }
+  function closeMenu(){
+    el.menu.style.display = "none";
+  }
+
+  function openSettings(){
+    el.optDelay.value = opt.delaySec;
+    el.optExtraTurn.checked = !!opt.extraTurn;
+    el.optAssist.checked = !!opt.assist;
+    el.optAssistSpeed.value = String(opt.assistDelay);
+    el.optShowNumber.checked = !!opt.showNumber;
+    el.optSound.checked = !!opt.sound;
+    el.dlg.showModal();
+  }
+  function applySettings(){
+    opt.delaySec = Math.max(1, Math.min(5, parseInt(el.optDelay.value,10) || 3));
+    opt.extraTurn = !!el.optExtraTurn.checked;
+    opt.assist = !!el.optAssist.checked;
+    opt.assistDelay = parseInt(el.optAssistSpeed.value,10) || 100;
+    opt.showNumber = !!el.optShowNumber.checked;
+    opt.sound = !!el.optSound.checked;
+    store.set("sum10.settings.v1", opt);
+    applyCompactLayout();
+    resetRuntime();
+  }
+
+  function applyMenu(mode){
+    opt.mode = mode;
+    opt.grid = el.setGrid.value;
+    applyCompactLayout();
+    opt.target = Math.max(5, Math.min(20, parseInt(el.setTarget.value,10) || 10));
+    store.set("sum10.settings.v1", opt);
+    closeMenu();
+    resetRuntime();
+  }
+
+  /************ Wire ************/
+  el.btnMenu.addEventListener("click", openMenu);
+  el.btnSettings.addEventListener("click", openSettings);
+  el.btnReset.addEventListener("click", ()=> resetRuntime());
+  el.btnRestartRound.addEventListener("click", ()=> resetRuntime());
+  el.btnHideInfo.addEventListener("click", ()=>{
+    showOverlay("小提示", `翻到 a，就找「補 (目標和 - a)」的那張牌。\n例如目標和=10：翻到 7 就找 3。`);
+  });
+
+  el.startSingle.addEventListener("click", ()=> applyMenu("single"));
+  el.startTwo.addEventListener("click", ()=> applyMenu("two"));
+  el.menuStart.addEventListener("click", ()=> applyMenu("single"));
+  el.menuClose.addEventListener("click", ()=> closeMenu());
+
+  el.btnCloseDlg.addEventListener("click", ()=> el.dlg.close());
+  el.btnApplyDlg.addEventListener("click", ()=>{
+    el.dlg.close();
+    applySettings();
+  });
+
+  el.ovOk.addEventListener("click", hideOverlay);
+  el.overlay.addEventListener("click", (e)=>{ if(e.target === el.overlay) hideOverlay(); });
+  el.menu.addEventListener("click", (e)=>{ if(e.target === el.menu) closeMenu(); });
+
+  /************ Init ************/
+  // 初始顯示主選單
+  updateTop();
+  applyCompactLayout();
+  openMenu();
+</script>
+</body>
+</html>

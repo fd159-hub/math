@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#f1f7ff"><title>因數×倍數目標爭奪戰｜ARCADE 13.0</title><style>
+:root{font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Noto Sans TC","Microsoft JhengHei",sans-serif;color:#ebf3ff;background:#07152b;font-synthesis:none}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;width:100%}button,input,select{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed}button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #f5be57;outline-offset:3px}
+.hidden{display:none!important} .app{height:100dvh;min-height:500px;padding:12px clamp(10px,1.7vw,24px);display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:9px;background:radial-gradient(ellipse at 44% 30%,#233758 0,#101f38 48%,#071329 100%)}
+.topbar{height:58px;display:flex;align-items:center;justify-content:space-between;gap:15px;min-width:0}.brand{min-width:0}.eyebrow{font-size:10px;font-weight:900;letter-spacing:.19em;color:#a5d5ee}.brand h1{font-size:clamp(19px,2.35vw,29px);letter-spacing:.035em;line-height:1.17;margin:3px 0 0;white-space:nowrap}.topmetrics{display:flex;align-items:center;gap:9px;white-space:nowrap}.scorebox{min-width:89px;padding:6px 12px;border:1px solid #6a98d144;border-radius:13px;background:#182a46;display:flex;align-items:center;gap:9px}.scorebox.ai-score{background:#35213a;border-color:#d1678a50}.scorebox small{font-size:11px;color:#a9c3dc}.scorebox strong{display:block;font-size:21px;line-height:1.05;font-variant-numeric:tabular-nums}.scorebox .icon{font-size:17px}.clockbox{min-width:118px;padding:8px 12px;border:1px solid #476080;border-radius:13px;color:#f7dd99;background:#15283d;font-weight:900;text-align:center;font-size:17px;font-variant-numeric:tabular-nums}
+.game{display:grid;grid-template-columns:minmax(0,1fr) clamp(205px,21vw,260px);gap:12px;min-height:0;min-width:0}.arena{border:1px solid #49658a77;background:linear-gradient(145deg,#162b47 0%,#10223c 60%,#0e1b31 100%);border-radius:24px;display:grid;grid-template-rows:38px minmax(0,1fr);min-width:0;min-height:0;overflow:hidden;box-shadow:0 22px 60px #0004,inset 0 1px #ffffff18}.arena-bar{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 17px;border-bottom:1px solid #ffffff12}.turn{font-size:14px;font-weight:900;letter-spacing:.04em;color:#a8d6ff}.turn.turn-ai{color:#ffacc4}.goal-note{font-size:12px;color:#c8d2df;font-weight:700;white-space:nowrap}.battle-stage{min-height:0;min-width:0;position:relative;isolation:isolate;display:grid;place-items:center;padding:8px}.board{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(5,minmax(0,1fr));gap:clamp(5px,.7vh,9px);width:min(100%,calc(100dvh - 183px),650px);aspect-ratio:1/1;max-height:100%;margin:auto;filter:drop-shadow(0 16px 22px #0004)}
+.cell{position:relative;min-width:0;min-height:0;border:1.5px solid #516c90;border-radius:clamp(10px,1.2vw,16px);background:linear-gradient(155deg,#28425f,#1b304d);color:#f5f9ff;display:grid;place-items:center;font-size:clamp(19px,2.9vw,35px);font-weight:900;font-variant-numeric:tabular-nums;box-shadow:inset 0 1px #ffffff22,0 2px 4px #0003;transition:border-color .13s,transform .13s,background .13s;touch-action:manipulation}.cell:disabled{opacity:1}.cell:not(:disabled):active{transform:scale(.95)}.cell:not(:disabled):hover{border-color:#9ec4f6}.cell.human{background:linear-gradient(150deg,#2569b8,#174a83);border-color:#64b0f6;color:#fff}.cell.ai{background:linear-gradient(150deg,#b94b77,#843458);border-color:#ed98ad;color:#fff}.cell.anchor{background:linear-gradient(150deg,#17838d,#0d5a63);border-color:#79eff4;color:#efffff;box-shadow:inset 0 0 0 2px #d7ffff33,0 0 16px #58e8f052}.cell.legal{border-color:#60e2bd!important;background:linear-gradient(145deg,#185e63,#205762)!important;box-shadow:inset 0 0 0 2px #4bf3c788}.cell.target{background-image:linear-gradient(145deg,#615031,#403a34);border:2px solid #e0af5a;box-shadow:inset 0 0 0 2px #e6b96d3a,0 0 16px #ffc56a2d}.cell.target:before{content:'★';position:absolute;top:3px;left:7px;font-size:clamp(14px,1.9vw,22px);line-height:1;color:#ffda83;filter:drop-shadow(0 0 5px #ffc46a9e)}.cell.target:not(.human):not(.ai) .target-tag{position:absolute;right:5px;top:5px;font-size:9px;padding:2px 5px;border-radius:999px;background:#f0c970;color:#533700;font-weight:900;letter-spacing:.04em}.cell.target.human{background:linear-gradient(135deg,#287ac7,#1c4c9a);border:3px solid #f6ce78;box-shadow:0 0 0 3px #f9c86b7a,0 0 25px #eec47699}.cell.target.ai{background:linear-gradient(135deg,#c74679,#89335f);border:3px solid #ffcb7b;box-shadow:0 0 0 3px #f9c86b7a,0 0 25px #eec47699}.cell.target:is(.human,.ai)::after{content:'★ 已占領';position:absolute;bottom:3px;left:5px;right:5px;text-align:center;font-size:clamp(9px,1vw,11px);border-radius:5px;color:#fff7da;background:#12223fbb;white-space:nowrap;padding:2px}.cell.active-pivot{z-index:5;overflow:visible}.cell.active-pivot:before{content:'起點'!important;position:absolute;top:-11px;left:50%;transform:translateX(-50%);padding:2px 9px;border-radius:12px;background:#bffdff;color:#0a4c54;font-size:11px;line-height:1.3;white-space:nowrap;font-weight:900;z-index:6;filter:none}.cell.target.active-pivot:is(.human,.ai)::after{content:'★ 已占領'}
+.cell.ai-aim{z-index:4;border:4px solid #ffb1cb!important;box-shadow:0 0 0 5px #fa658ca6,0 0 40px #ef427bcc!important;animation:aim-bounce .38s alternate infinite}.cell.ai-aim:after{content:'AI 選這格'!important;position:absolute;top:-15px;right:-8px;padding:3px 8px;background:#a63263;color:#fff;font-size:11px;border-radius:12px;white-space:nowrap;z-index:5}.cell.claim-pop{animation:capture-pop .68s cubic-bezier(.2,1.4,.3,1)}.cell.target-capture{animation:capture-pop .68s cubic-bezier(.2,1.4,.3,1),target-aura 1.05s ease-out!important;z-index:4}.cell.invalid{animation:wrong .4s;border:4px solid #ff6b84!important;background:#94334e!important}
+.move-line{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6;overflow:visible}.move-line line{stroke:#ff789b;stroke-width:8;stroke-linecap:round;stroke-dasharray:15 11;opacity:0;filter:drop-shadow(0 0 7px #fbc3d1);transition:opacity .15s}.move-line.tracing line{opacity:1;animation:dash .33s linear infinite}.board-flash{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:12;border:2px solid #f9e2ab;padding:11px 19px;border-radius:19px;white-space:nowrap;max-width:94%;background:#124a79;color:white;font-size:clamp(17px,2.8vw,26px);font-weight:950;box-shadow:0 12px 30px #0008;animation:flash .25s ease-out}.board-flash.ai{background:#a42e59}.board-flash.win{background:#13745f}.board-toast{position:absolute;bottom:15px;left:50%;transform:translateX(-50%);z-index:12;background:#0b223feF;color:#f5f9ff;border:1px solid #6d9dc4;border-radius:12px;padding:9px 15px;font-weight:850;font-size:clamp(12px,1.45vw,17px);white-space:nowrap;max-width:97%;pointer-events:none;text-align:center;box-shadow:0 9px 23px #0006}.board-toast.bad{background:#9b2b4e;border-color:#ffabbf}.celebrate{position:absolute;inset:0;z-index:10;pointer-events:none;overflow:hidden}.confetti{position:absolute;top:40%;left:50%;width:10px;height:17px;background:var(--c);border-radius:2px;animation:confetti .9s ease-out forwards}
+.tools{background:linear-gradient(180deg,#172b46,#12243d);border:1px solid #516a8859;border-radius:22px;padding:16px;min-width:0;min-height:0;display:flex;flex-direction:column;gap:11px;box-shadow:0 12px 35px #0003}.tools-title{font-size:14px;font-weight:900;letter-spacing:.06em;color:#e6f0ff;padding-bottom:2px}.field{display:grid;gap:4px}.field label{font-size:12px;font-weight:800;color:#a9bdd5}.field select,.field input{width:100%;min-width:0;min-height:39px;padding:7px 9px;background:#213754;border:1px solid #5b789b;border-radius:11px;color:#fff;font-weight:750}.field select option{background:#213754}.buttons{display:grid;gap:7px}.primary,.secondary{border-radius:12px;border:1px solid #718bad;min-height:42px;padding:8px 10px;font-size:14px;font-weight:900;color:#fff;background:#28486e}.primary{background:linear-gradient(135deg,#49bdb1,#1b8b8e);border-color:#7bd9c7;color:#072c39}.secondary{background:#244062}.secondary:disabled{opacity:.5}.tools details{margin-top:auto;color:#c2d2e5;font-size:11.5px;line-height:1.52}.tools summary{cursor:pointer;font-size:12px;font-weight:850;color:#d9e8f9}.tools details p{margin:7px 0}.footer{height:27px;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:0 7px;font-size:11px;color:#95abc7}.footer .legend{display:flex;gap:12px;white-space:nowrap}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}.status,.foot,.rules:not(details),.targets{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.overlay{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:#0b1830ba;padding:12px;border-radius:20px;backdrop-filter:blur(5px)}.dialog{width:min(390px,100%);max-height:95%;overflow:auto;background:#182e4b;border:1px solid #cba968;border-radius:19px;padding:23px;box-shadow:0 20px 55px #0008;text-align:center}.dialog h2{margin:0 0 9px;font-size:26px;color:#ffe2a7}.dialog p{line-height:1.6;font-size:14px;color:#dfebf9}.dialog button{width:100%}
+@keyframes pivot-pulse{0%,100%{outline-color:#8ffcff;outline-offset:4px;box-shadow:0 0 0 3px #d8ffff,0 0 0 7px #23b8c4,0 0 18px #58dce8aa}50%{outline-color:#ffffff;outline-offset:8px;box-shadow:0 0 0 3px #ffffff,0 0 0 10px #24bfd0,0 0 34px #7ef4ffef}}@keyframes aim-bounce{to{transform:scale(1.09)}}@keyframes capture-pop{0%{transform:scale(.82);filter:brightness(1.1)}65%{transform:scale(1.13);filter:brightness(1.18)}100%{transform:scale(1);filter:brightness(1)}}@keyframes target-aura{0%{box-shadow:0 0 0 0 rgba(255,222,138,.0),0 0 0 3px #f9c86b7a,0 0 25px #eec47699}45%{box-shadow:0 0 0 8px rgba(255,222,138,.5),0 0 0 3px #f9c86b7a,0 0 32px #ffd986cc}100%{box-shadow:0 0 0 0 rgba(255,222,138,0),0 0 0 3px #f9c86b7a,0 0 25px #eec47699}}@keyframes wrong{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}@keyframes dash{to{stroke-dashoffset:-52}}@keyframes flash{from{opacity:0;transform:translate(-50%,-50%) scale(.78)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}@keyframes confetti{to{transform:translate(var(--x),var(--y)) rotate(var(--r));opacity:0}}
+@media (max-height:700px) and (orientation:landscape){.app{padding-top:6px;padding-bottom:6px;gap:5px}.topbar{height:48px}.arena{grid-template-rows:30px}.tools{padding:10px;gap:6px}.field select,.field input{min-height:32px;padding:4px 7px}.primary,.secondary{min-height:34px;padding:5px}.board{width:min(100%,calc(100dvh - 130px),650px)}.footer{height:22px}.tools details p{font-size:10px}}
+@media (max-width:940px) and (orientation:landscape){.game{grid-template-columns:minmax(0,1fr) 185px;gap:8px}.tools{padding:9px;gap:6px}.brand h1{font-size:18px}.eyebrow{font-size:9px}.scorebox{min-width:67px;padding:5px 8px;gap:4px}.scorebox small{font-size:9px}.scorebox strong{font-size:17px}.clockbox{min-width:92px;padding:7px;font-size:14px}.topmetrics{gap:4px}.arena-bar{padding:2px 8px}.goal-note{font-size:10px}.turn{font-size:12px}.board{width:min(100%,calc(100dvh - 134px),650px)}.footer{font-size:9px}}
+@media (orientation:portrait){.app{height:auto;min-height:100dvh;grid-template-rows:auto auto auto}.topbar{height:auto;flex-wrap:wrap;gap:8px}.game{grid-template-columns:1fr}.arena{grid-template-rows:36px auto}.battle-stage{height:auto;min-height:0;padding:12px}.board{width:min(100%,calc(100vw - 45px),580px);max-height:none}.tools{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tools-title{grid-column:1/-1}.tools details{grid-column:1/-1}.footer{height:auto;flex-wrap:wrap}.brand h1{white-space:normal}}
+@media(prefers-reduced-motion:reduce){.cell,.move-line line,.confetti,.board-flash{animation-duration:.01ms!important;transition:none!important}}
+
+/* ARCADE 13.0 — accessible light/dark game tokens; all meaningful surfaces follow the toggle. */
+:root,[data-theme="light"]{
+ color-scheme:light;--text:#17294a;--muted:#586b86;--screen:#f1f7ff;--screen2:#dcebf9;
+ --surface:#ffffff;--panel:#f5f9ff;--panel2:#eaf2ff;--edge:#c2d4e8;--shadow:#45628b22;
+ --board1:#f6fbff;--board2:#e4effe;--board-edge:#aec5df;--player:#136ac3;--player2:#237dd5;
+ --rival:#a72158;--rival2:#df5188;--gold:#9b6512;--gold2:#f1b445;--good:#08775d;
+ --stage:#eaf3ff;--toast:#ffffff;--toast-text:#203554;--focus:#164bc3;
+}
+[data-theme="dark"]{
+ color-scheme:dark;--text:#eaf3ff;--muted:#9eb4d0;--screen:#071326;--screen2:#172b4d;
+ --surface:#11223d;--panel:#152946;--panel2:#1b3454;--edge:#405c7f;--shadow:#0008;
+ --board1:#284562;--board2:#1a314e;--board-edge:#637f9f;--player:#3b9bef;--player2:#1166ac;
+ --rival:#ff7aa8;--rival2:#9e315b;--gold:#f9ce76;--gold2:#ce9140;--good:#3dd7ac;
+ --stage:#0d1c33;--toast:#172b48;--toast-text:#f5faff;--focus:#ffe4a2;
+}
+html,body{background:var(--screen);color:var(--text)}
+.app{color:var(--text);background:radial-gradient(ellipse at 47% -15%,var(--screen2),var(--screen) 62%);}
+.topbar{position:relative}.eyebrow{color:var(--muted);display:flex;align-items:center;gap:7px}.live-dot{width:7px;height:7px;background:#15c797;border-radius:50%;box-shadow:0 0 0 4px #16b99d22;flex:none}
+.brand h1{color:var(--text);letter-spacing:0}.edition{font-size:9px;letter-spacing:.13em;vertical-align:middle;border:1px solid #2b92c855;background:#188fd218;color:#1881b4;padding:3px 6px;border-radius:5px;font-weight:950;margin-left:3px}
+[data-theme="dark"] .edition{color:#94e3ff}
+.quick-toggles{display:flex;gap:6px;flex:none}.icon-button{width:37px;height:37px;border-radius:12px;border:1px solid var(--edge);background:var(--surface);color:var(--text);font-size:22px;line-height:1;display:grid;place-items:center;box-shadow:0 3px 8px var(--shadow);touch-action:manipulation}
+.icon-button[aria-pressed="true"]{background:#178871;color:white;border-color:#178871}
+.scorebox,.scorebox.ai-score{border:1px solid var(--edge);background:var(--surface);box-shadow:0 3px 10px var(--shadow);min-width:92px;padding:5px 10px}
+.scorebox{border-left:3px solid var(--player)}.scorebox.ai-score{border-left:3px solid var(--rival)}
+.scorebox small{color:var(--muted);font-weight:800;font-size:10px;letter-spacing:.025em}.scorebox strong{font-size:19px;color:var(--text)}
+.scorebox .icon{color:var(--player);font-size:21px}.scorebox.ai-score .icon{color:var(--rival)}
+.score-pips{display:flex;gap:4px;margin-top:3px}.score-pips i{width:16px;height:4px;background:var(--edge);border-radius:8px}.score-pips .filled{background:var(--player);box-shadow:0 0 6px #269cea88}.ai-score .score-pips .filled{background:var(--rival);box-shadow:0 0 6px #ef519988}
+.clockbox{color:var(--gold);border-color:var(--edge);background:var(--surface);box-shadow:0 3px 10px var(--shadow);min-width:105px}
+.clockbox.urgent{color:#d93158;border-color:#e65d78;animation:clock-pulse .75s infinite alternate}
+.arena{background:var(--surface);border:1px solid var(--edge);box-shadow:0 16px 45px var(--shadow),inset 0 1px #ffffff40;border-radius:23px;position:relative}
+.arena::before{content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;box-shadow:inset 0 0 0 4px #5d9acb0a}
+.arena-bar{border-bottom:1px solid var(--edge);background:var(--panel);padding-inline:15px;position:relative;z-index:1}
+.turn{color:var(--player)!important}.turn.turn-ai{color:var(--rival)!important}.goal-note{color:var(--muted)}.star-glyph{color:var(--gold2)}
+.battle-stage{background:radial-gradient(circle at 50% 48%,var(--board1),var(--stage) 70%)}
+.battle-stage::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(90deg,#5986b908 1px,transparent 1px),linear-gradient(#5986b908 1px,transparent 1px);background-size:26px 26px;mask-image:radial-gradient(ellipse at center,black,transparent 85%)}
+.board-frame{min-height:0;min-width:0;max-height:100%;width:100%;height:100%;display:grid;place-items:center;position:relative;isolation:isolate}
+.board-frame::before{content:'';position:absolute;width:min(100%,calc(100dvh - 162px),670px);aspect-ratio:1;border:1px solid var(--board-edge);border-radius:24px;background:var(--surface);opacity:.5;box-shadow:0 0 0 5px #5985d00a;pointer-events:none}
+.board{position:relative;z-index:1;width:min(100%,calc(100dvh - 183px),650px);filter:drop-shadow(0 10px 19px var(--shadow));padding:4px}
+.cell{border:1.5px solid var(--board-edge);background:linear-gradient(150deg,var(--board1),var(--board2));color:var(--text);box-shadow:inset 0 1px #ffffff66,0 3px 7px var(--shadow);font-weight:950;transition:transform .14s,box-shadow .15s,border-color .14s;overflow:visible}
+.cell:not(:disabled):hover{border-color:var(--player);box-shadow:inset 0 0 0 2px #318be53b,0 5px 10px var(--shadow);transform:translateY(-2px)}
+.cell.human{color:#fff;background:linear-gradient(140deg,#338eea,#1259af);border-color:#2788df;box-shadow:inset 0 1px #b2e5ff60,0 4px 9px #145ba74b}
+.cell.ai{color:#fff;background:linear-gradient(140deg,#ee6a9a,#9b2358);border-color:#d94581;box-shadow:inset 0 1px #ffdbeb55,0 4px 9px #9b235844}
+.cell.anchor{background:linear-gradient(140deg,#c7f8f7,#8be6e6);border-color:#1699a7;color:#064e5b}
+[data-theme="dark"] .cell.anchor{background:linear-gradient(140deg,#166775,#0d4b60);border-color:#31ccd9;color:#e8ffff}
+.cell.target:not(.human):not(.ai){background:linear-gradient(145deg,#fff8df,#f8e8b5);border:2px solid #d2a34d;color:#6c4810;box-shadow:inset 0 0 0 2px #fff9e9a8,0 2px 11px #cb9f4044}
+[data-theme="dark"] .cell.target:not(.human):not(.ai){background:linear-gradient(150deg,#64502b,#433923);color:#fff0c5;border-color:#f1c16c}
+.cell.target:before{color:#bb8022;filter:drop-shadow(0 0 3px #f9d58b77)}
+[data-theme="dark"] .cell.target:before{color:#ffd37c}
+.cell.target.human,.cell.target.ai{border:3px solid #ffc95b;box-shadow:inset 0 0 0 2px #fff4b550,0 0 0 3px #f9c86b88,0 0 22px #f0bf5b88}
+.cell.target:is(.human,.ai)::after{background:#092243e8;color:#fff5d4;letter-spacing:.05em}
+.cell.active-pivot{z-index:5}
+.cell.active-pivot:before{background:#ffd976;color:#603c06;box-shadow:0 2px 7px #a3793933}
+.cell.ai-aim{box-shadow:0 0 0 5px #ec689ea0,0 0 27px #e94583a1!important}
+.cell.legal{background:linear-gradient(145deg,#dcfff1,#b9f4da)!important;color:#135643!important;border:2px solid #1bb987!important;box-shadow:inset 0 0 0 2px #42dcb244!important}
+[data-theme="dark"] .cell.legal{background:linear-gradient(145deg,#1f6667,#194d5b)!important;color:#d4fff1!important}
+.board-flash{background:#166ac0;color:white;border:2px solid #7cc4ff;box-shadow:0 8px 30px #174d9480;font-size:clamp(15px,2.7vw,26px)}
+.board-flash.ai{background:#aa2a67;border-color:#ffb0d1}.board-flash.win{background:#087d67;border-color:#76edc6}
+.board-toast{background:var(--toast);color:var(--toast-text);border-color:var(--edge);box-shadow:0 5px 24px var(--shadow)}.board-toast.bad{color:white;background:#a9245b;border-color:#fa7caa}
+.tools{background:var(--surface);border:1px solid var(--edge);box-shadow:0 10px 26px var(--shadow);gap:10px}
+.tools-title{color:var(--text);display:flex;align-items:center;gap:5px}.tools-title small{font-size:9px;letter-spacing:.13em;font-weight:800;color:var(--muted);margin-left:auto}
+.field label{color:var(--muted)}.field select,.field input{color:var(--text);background:var(--panel);border-color:var(--edge);box-shadow:inset 0 1px 2px var(--shadow)}.field select option{background:var(--surface);color:var(--text)}
+.primary{background:linear-gradient(135deg,#25a4dc,#1262b8);color:#fff;border:1px solid #499ce1;box-shadow:0 4px 0 #0d4f91,0 7px 14px #0c5a9c25}
+.primary:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 #0d4f91}
+.secondary{color:var(--text);background:var(--panel2);border:1px solid var(--edge)}
+.tools details{color:var(--muted)}.tools summary{color:var(--text)}.footer{color:var(--muted)}.dot{box-shadow:0 0 0 2px var(--surface)}
+.overlay{background:#0c1a31ad}.dialog{background:var(--surface);border:2px solid var(--gold2);box-shadow:0 24px 70px #08152780;color:var(--text)}.dialog h2{color:var(--gold)}.dialog p{color:var(--text)}
+button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+@keyframes pivot-halo{50%{box-shadow:0 0 0 3px var(--surface),0 0 0 8px #e8a730,0 0 32px #e8a730a3}}
+@keyframes clock-pulse{to{box-shadow:0 0 0 3px #e75d7750}}
+
+.tutorial-layer{position:fixed;inset:0;z-index:60;pointer-events:none}
+.tutorial-shade{position:absolute;inset:0;background:rgba(9,20,36,.08);backdrop-filter:none!important;opacity:0;transition:opacity .2s}
+.tutorial-layer.active .tutorial-shade{opacity:1}
+.tutorial-spotlight{position:fixed;border:3px solid #ffd571;border-radius:18px;box-shadow:0 0 0 3px rgba(255,213,113,.20),0 0 15px rgba(255,213,113,.65);opacity:0;transform:scale(.96);transition:all .22s ease;pointer-events:none}
+.tutorial-layer.active .tutorial-spotlight{opacity:1;transform:scale(1)}
+.tutorial-bubble{position:fixed;z-index:61;max-width:min(360px,calc(100vw - 30px));padding:14px 16px 12px;border-radius:18px;background:linear-gradient(180deg,#fffdf8,#fff2d2);color:#22304a;border:2px solid #f1c96b;box-shadow:0 18px 38px rgba(0,0,0,.28);pointer-events:auto;opacity:0;transform:translateY(10px);transition:opacity .18s,transform .18s}
+.tutorial-layer.active .tutorial-bubble{opacity:1;transform:translateY(0)}
+.tutorial-bubble h3{margin:0 0 7px;font-size:19px;color:#7a4b00}
+.tutorial-bubble p{margin:0 0 10px;line-height:1.58;font-size:14px;color:#29384f}
+.tutorial-reminder{display:flex;gap:8px;align-items:flex-start;padding:9px 10px;border-radius:12px;background:#fff8e7;border:1px solid #efcf82;margin:8px 0 10px}
+.tutorial-reminder strong{font-size:12px;color:#9c6300;letter-spacing:.04em;white-space:nowrap}
+.tutorial-reminder span{font-size:13px;line-height:1.5;color:#5a4623}
+.tutorial-actions{display:flex;justify-content:space-between;gap:8px;align-items:center}.tutorial-actions .group{display:flex;gap:8px}.tutorial-step{font-size:12px;font-weight:900;color:#8e6a21}
+.tutorial-btn{min-height:38px;padding:8px 12px;border-radius:12px;border:1px solid #b88a35;background:#fff7e2;color:#71470b;font-weight:900}.tutorial-btn.primary{background:linear-gradient(135deg,#ffe9a8,#f2c558)}
+.tutorial-btn.ghost{background:#fff}
+.tutorial-badge{position:absolute;top:10px;left:16px;padding:3px 10px;background:#ffdb78;color:#6b4300;border-radius:999px;font-size:11px;font-weight:900;letter-spacing:.06em;box-shadow:0 4px 10px rgba(0,0,0,.12)}
+.board-guide-pulse{animation:guide-pulse 1.1s ease-in-out infinite}
+@keyframes guide-pulse{50%{transform:scale(1.05);filter:brightness(1.08)}}
+@media(max-width:1100px) and (orientation:landscape){.edition{display:none}.icon-button{width:31px;height:34px;font-size:19px}.quick-toggles{gap:4px}.topmetrics{gap:5px}.scorebox,.scorebox.ai-score{min-width:78px;padding:4px 7px}.scorebox small{font-size:9px}.clockbox{min-width:91px;padding:6px}.board-frame::before{width:min(100%,calc(100dvh - 117px),670px)}}
+@media(max-height:700px) and (orientation:landscape){.icon-button{height:30px;width:30px}.score-pips{margin-top:1px}.tools-title small{display:none}.board-frame::before{width:min(100%,calc(100dvh - 111px),670px)}.board{width:min(100%,calc(100dvh - 130px),650px)}}
+@media(orientation:portrait){.board-frame{height:auto}.board-frame::before{width:min(100%,calc(100vw - 20px),600px)}.board{width:min(100%,calc(100vw - 45px),580px)}.quick-toggles{margin-left:auto}}
+@media(prefers-reduced-motion:reduce){.cell,.cell.active-pivot,.clockbox,.board-flash,.confetti{animation:none!important;transition:none!important}}
+
+/* 7.0 — Game feel: mission HUD, moving number attacks, readable math feedback. */
+.arena{--attack-color:var(--player)}.arena.ai-phase{--attack-color:var(--rival)}
+.arena.player-phase{border-color:color-mix(in srgb,var(--player) 43%,var(--edge))}
+.arena.ai-phase{border-color:color-mix(in srgb,var(--rival) 43%,var(--edge))}
+.arena-bar{min-height:41px;gap:6px}.turn{display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;font-size:clamp(11px,1.2vw,14px)}
+.turn::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--player);box-shadow:0 0 0 3px #3998e127;flex:none}
+.turn-ai::before{background:var(--rival);box-shadow:0 0 0 3px #da4b8527}
+.mission-hud{display:flex;align-items:center;justify-content:flex-end;gap:6px;min-width:0}
+.mission-chip{position:relative;display:flex;align-items:center;gap:5px;justify-content:center;min-width:66px;padding:3px 8px;border-radius:10px;border:1px solid var(--gold2);background:var(--surface);color:var(--gold);font-weight:950;letter-spacing:.03em;font-variant-numeric:tabular-nums;box-shadow:inset 0 1px #fff4a526;transition:background .25s,box-shadow .25s}
+.mission-chip b{font-size:14px}.mission-chip i{font-style:normal;font-size:14px}
+.mission-chip.human{color:white;background:linear-gradient(135deg,#318ce9,#1555a9);border-color:#65b7ff}
+.mission-chip.ai{color:white;background:linear-gradient(135deg,#eb6497,#a1235d);border-color:#ff9cbf}
+.mission-chip.just-taken{animation:mission-gain .78s both;z-index:5}
+.mission-chip small{font-size:9px;font-weight:950}
+.battle-stage{overflow:hidden}.battle-stage:after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,transparent 40%,var(--attack-color) 180%);opacity:.075;pointer-events:none;z-index:0;transition:background .25s}
+.board-frame{z-index:1}.board{perspective:900px;transition:filter .15s}
+.cell{isolation:isolate;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;backface-visibility:hidden}
+.cell:not(.target):not(.human):not(.ai):not(.anchor){background-image:linear-gradient(150deg,#fff9,var(--board1) 22%,var(--board2) 100%)}
+[data-theme="dark"] .cell:not(.target):not(.human):not(.ai):not(.anchor){background-image:linear-gradient(150deg,#ffffff19,var(--board1) 28%,var(--board2) 100%)}
+.cell:not(.human):not(.ai):not(.anchor):not(.target)::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 0 -4px 0 #1f5ba112}
+.cell .last-badge{position:absolute;right:5px;bottom:4px;font-size:9px;line-height:1.2;padding:2px 4px;border-radius:5px;color:#fff;background:#182d52b5;white-space:nowrap;font-weight:850}
+.cell.target .last-badge{bottom:auto;top:5px;right:5px}
+.cell.player-aim{z-index:4;border:4px solid #47c8ff!important;box-shadow:0 0 0 5px #40bfff75,0 0 27px #409df2ab!important;animation:aim-bounce .28s alternate infinite}
+.cell.ai-aim{animation:aim-bounce .28s alternate infinite}
+.cell:is(.player-aim,.ai-aim)::before{content:'◈ 鎖定'!important;position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:950;padding:2px 8px;white-space:nowrap;background:var(--player);color:white;border-radius:9px;z-index:6;filter:none}
+.cell.ai-aim::before{background:var(--rival)}.cell.ai-aim::after{content:none!important}
+.move-line{z-index:7;overflow:visible}.move-line line{stroke:var(--player);stroke-dasharray:12 9;stroke-width:7;filter:drop-shadow(0 0 6px #39bafa)}
+.move-line.rival line{stroke:#ea5992;filter:drop-shadow(0 0 6px #ea5992)}
+.effects-layer{position:absolute;inset:0;z-index:10;pointer-events:none;overflow:hidden}
+.attack-orb{position:absolute;width:25px;height:25px;margin:-12.5px 0 0 -12.5px;border-radius:50%;background:radial-gradient(circle,#fff 0 18%,#7ddfff 25%,#2185f5 55%,transparent 75%);box-shadow:0 0 8px #50d9ff,0 0 26px #2a9fff;will-change:transform;z-index:10}
+.attack-orb.rival{background:radial-gradient(circle,#fff 0 18%,#ffa8d5 25%,#dc327c 55%,transparent 75%);box-shadow:0 0 8px #f5a8d4,0 0 26px #e74f95}
+.equation-pop{position:absolute;left:0;top:0;z-index:11;white-space:nowrap;max-width:85%;padding:5px 12px;background:var(--surface);color:var(--player);border:2px solid var(--player);border-radius:12px;box-shadow:0 5px 20px var(--shadow);font-weight:950;font-size:clamp(14px,1.7vw,19px);transform:translate(-50%,-110%);animation:eq-appear .7s both;letter-spacing:.02em}
+.equation-pop.rival{color:var(--rival);border-color:var(--rival)}
+.equation-pop.error{color:#e62c58;border-color:#e62c58;background:var(--surface);font-size:clamp(12px,1.4vw,16px)}
+.arena-impact{position:absolute;inset:0;z-index:8;pointer-events:none;opacity:0;background:radial-gradient(circle,var(--player) 0,transparent 67%)}
+.arena-impact.hit{animation:impact .5s ease-out}.arena-impact.rival{background:radial-gradient(circle,#e94180,transparent 70%)}
+.arena-impact.error{background:radial-gradient(circle,#f44363,transparent 70%)}
+.board.hit-board{animation:board-kick .32s ease-out}.board.error-board{animation:board-error .29s ease-in-out}
+.cell.target:not(.human):not(.ai){animation:treasure-breathe 2.8s ease-in-out infinite}
+.cell.target.human,.cell.target.ai{animation:claim-glory .7s ease-out}
+.cell.target:is(.human,.ai)::after{content:'★ 已占領';font-size:clamp(8px,1vw,11px)}
+.cell.target:is(.human,.ai).active-pivot::before{content:'起點'!important}
+.board-flash{max-width:min(95%,500px);overflow-wrap:anywhere;text-align:center;white-space:normal;line-height:1.25;animation:arcade-callout .36s cubic-bezier(.18,1.4,.3,1)}
+.board-toast{bottom:8px;font-size:clamp(11px,1.4vw,15px);box-shadow:0 8px 22px var(--shadow)}
+.scorebox strong{transition:transform .25s}.scorebox.score-bump strong{animation:score-bump .6s both}
+.stage-label{position:absolute;top:6px;left:10px;z-index:4;pointer-events:none;opacity:.62;font-size:9px;letter-spacing:.15em;color:var(--muted);font-weight:950}
+.overlay{z-index:30}.dialog{border-radius:24px;padding:22px;max-width:min(88vw,460px)}
+.dialog .result-stars{display:flex;justify-content:center;gap:8px;margin:12px 0}.dialog .result-star{font-size:20px;border-radius:12px;padding:8px 12px;border:1px solid var(--edge);background:var(--panel);font-weight:950}
+.dialog .result-star.human{background:#125fbb;color:white}.dialog .result-star.ai{background:#ae245c;color:white}
+@keyframes eq-appear{0%{opacity:0;transform:translate(-50%,-72%) scale(.65)}22%{opacity:1;transform:translate(-50%,-130%) scale(1.07)}75%{opacity:1;transform:translate(-50%,-137%) scale(1)}100%{opacity:0;transform:translate(-50%,-162%) scale(.96)}}
+@keyframes impact{0%{opacity:0}14%{opacity:.2}100%{opacity:0}}
+@keyframes board-kick{0%{transform:scale(1)}30%{transform:scale(1.014)}100%{transform:scale(1)}}
+@keyframes board-error{0%,100%{transform:translateX(0)}30%{transform:translateX(-3px)}65%{transform:translateX(3px)}}
+@keyframes treasure-breathe{50%{box-shadow:inset 0 0 0 2px #fff9e9a8,0 0 15px #e8a9327c}}
+@keyframes claim-glory{0%{filter:brightness(2.2);transform:scale(1.12)}65%{filter:brightness(1.15)}100%{filter:brightness(1);transform:scale(1)}}
+@keyframes mission-gain{0%{transform:scale(.85)}35%{transform:scale(1.19);box-shadow:0 0 26px #f5b92ca9}100%{transform:scale(1)}}
+@keyframes score-bump{35%{transform:scale(1.4)}100%{transform:scale(1)}}
+@keyframes arcade-callout{0%{opacity:0;transform:translate(-50%,-50%) scale(.62) rotate(-3deg)}68%{transform:translate(-50%,-50%) scale(1.08) rotate(1deg)}100%{transform:translate(-50%,-50%) scale(1)}}
+
+@media(max-width:1100px) and (orientation:landscape){.mission-chip{min-width:57px;padding:3px 5px;font-size:12px}.mission-chip b{font-size:13px}.mission-chip small{font-size:8px}.arena-bar{padding-inline:9px}.turn{font-size:11px}}
+@media(max-height:700px) and (orientation:landscape){.arena-bar{min-height:30px}.mission-chip{padding:1px 5px}.board-toast{padding:5px 10px}.stage-label{display:none}}
+@media(prefers-reduced-motion:reduce){.cell.target,.cell.target.human,.cell.target.ai,.cell:is(.player-aim,.ai-aim),.board,.arena-impact,.mission-chip,.scorebox strong,.equation-pop{animation:none!important}.attack-orb{display:none!important}}
+
+/* V12 — authoritative shared cell states; keep pivot independent of ownership/goal badges. */
+.cell .target-tag{position:absolute;right:5px;top:5px;font-size:10px!important;line-height:1.1!important;padding:3px 5px;border-radius:6px;background:#eec166;color:#513609;font-weight:950;letter-spacing:0;white-space:nowrap;z-index:2;transform:none!important;animation:none!important}
+.cell:is(.human,.ai) .target-tag{display:none!important}
+/* One animated cyan ring, for every kind of current start cell. No gold/cyan stacked frame. */
+.cell.active-pivot{z-index:5;outline:0!important;border:1px solid transparent!important;box-shadow:none!important;overflow:visible}
+.cell.active-pivot:not(.claim-pop):not(.target-capture){animation:none!important}
+.cell.active-pivot:not(.target)::before{content:none!important;display:none!important}
+.cell.target:is(.human,.ai).active-pivot::before,.cell.target.active-pivot::before{content:'★'!important;display:block!important;position:absolute;top:3px;left:7px;right:auto;bottom:auto;transform:none;background:transparent;color:#ffdc8b;padding:0;border-radius:0;filter:drop-shadow(0 0 4px #dfaa43);font-size:clamp(14px,1.9vw,22px);line-height:1}
+.cell.active-pivot .last-badge{display:none!important}
+.cell.active-pivot .pivot-ring{position:absolute;inset:-5px;border:3px solid #12c1d2;border-radius:calc(clamp(10px,1.2vw,16px) + 5px);box-shadow:0 0 12px #35dce58a;animation:pivot-outline-blink 1.12s ease-in-out infinite;pointer-events:none;z-index:8}
+.cell.active-pivot .pivot-label{position:absolute;top:-12px;left:50%;transform:translateX(-50%);padding:3px 9px;border-radius:999px;background:#b4fdff;color:#064a54;border:0;box-shadow:0 2px 6px #003d4b33;font-size:11px!important;line-height:1.2!important;white-space:nowrap;letter-spacing:0;font-weight:950;z-index:9;pointer-events:none;animation:none!important}
+@keyframes pivot-outline-blink{0%,100%{opacity:.62;border-color:#11b9c7;box-shadow:0 0 7px #35dce580}50%{opacity:1;border-color:#8ffbff;box-shadow:0 0 17px #25e1f2aa}}
+/* Both normal and goal captures share one 680ms movement; goals add only a gold burst. */
+.cell.target:is(.human,.ai):not(.target-capture):not(.claim-pop):not(.active-pivot){animation:none!important}
+.cell.claim-pop{animation:capture-pop .68s cubic-bezier(.2,1.4,.3,1)!important}
+.cell.target-capture{animation:capture-pop .68s cubic-bezier(.2,1.4,.3,1),target-aura 1.05s ease-out!important}
+/* Keep tutorial discoverable and modal controls above the page. */
+.arena-shortcuts{display:flex;align-items:center;gap:7px;min-width:0}
+.help-quick{border:1px solid var(--edge);border-radius:10px;background:var(--surface);color:var(--text);font-size:12px;font-weight:950;min-height:29px;padding:4px 8px;white-space:nowrap;flex:none}
+.help-quick:hover{border-color:#22bac8}
+.tutorial-layer.active{pointer-events:auto}
+.tutorial-layer:not(.active),.tutorial-layer:not(.active) *{pointer-events:none!important}
+.tutorial-layer.active .tutorial-shade{pointer-events:auto}
+.tutorial-bubble{width:min(360px,calc(100vw - 30px));max-height:calc(100dvh - 24px);overflow:auto;padding-top:37px;scrollbar-width:thin}
+@media(max-width:940px) and (orientation:landscape){.help-quick{font-size:11px;padding:4px 6px}.arena-shortcuts{gap:3px}}
+@media(prefers-reduced-motion:reduce){.cell.active-pivot .pivot-ring{animation:none!important;opacity:1!important}}
+
+/* V14: actual motion on the ONE existing start ring; no extra borders or pseudo-rings. */
+.cell.active-pivot .pivot-ring{
+ animation:pivot-ring-hop 1.12s cubic-bezier(.42,0,.28,1) infinite!important;
+ transform-origin:50% 50%;will-change:transform,opacity;
+}
+@keyframes pivot-ring-hop{
+ 0%,100%{transform:translateY(0) scale(.975);opacity:.66;border-color:#0cabbc;box-shadow:0 0 6px #1bb9ca80}
+ 46%{transform:translateY(-4px) scale(1.105);opacity:1;border-color:#c6ffff;box-shadow:0 0 19px #22d5eddd}
+}
+/* Guided selection moves too, while the number board remains completely clear. */
+.tutorial-layer.active .tutorial-spotlight{
+ animation:tutorial-spot-hop 1.2s ease-in-out infinite;
+ transition:left .22s ease,top .22s ease,width .22s ease,height .22s ease,opacity .18s ease;
+ transform-origin:50% 50%;will-change:transform,opacity;
+}
+@keyframes tutorial-spot-hop{
+ 0%,100%{transform:translateY(0) scale(.975);border-color:#e6ae34;box-shadow:0 0 0 2px #f4c96520,0 0 8px #e8ae5e77}
+ 50%{transform:translateY(-4px) scale(1.045);border-color:#ffe6a0;box-shadow:0 0 0 2px #ffe5a62d,0 0 21px #ffd66ebb}
+}
+@media(prefers-reduced-motion:reduce){
+ .cell.active-pivot .pivot-ring,.tutorial-layer.active .tutorial-spotlight{animation:none!important;transform:none!important;opacity:1!important}
+}
+</style></head><body>
+<main class="app">
+<header class="topbar">
+ <div class="brand"><div class="eyebrow"><span class="live-dot" aria-hidden="true"></span> MATH ARCADE · 數學嘉年華</div><h1>因數 × 倍數｜目標爭奪戰 <span class="edition">ARCADE</span></h1></div>
+ <div class="topmetrics" aria-label="對戰狀態">
+  <div class="scorebox player-score"><span class="icon" aria-hidden="true">◆</span><div><small>PLAYER · 你的目標</small><strong id="hs">0 / 2</strong><div class="score-pips" id="hpips" aria-hidden="true"><i></i><i></i></div></div></div>
+  <div class="clockbox" id="clock" role="timer" aria-label="時間">∞ 不限時</div>
+  <div class="scorebox ai-score"><span class="icon" aria-hidden="true">✦</span><div><small>RIVAL · AI 目標</small><strong id="as">0 / 2</strong><div class="score-pips" id="apips" aria-hidden="true"><i></i><i></i></div></div></div>
+    <div class="quick-toggles" role="group" aria-label="外觀和音效"><button id="themeToggle" class="icon-button" type="button" aria-label="切換深色模式" title="切換淺色與深色模式">☾</button><button id="soundToggle" class="icon-button" type="button" aria-label="開啟遊戲音效" aria-pressed="false" title="開關遊戲音效">♪</button></div>
+  </div>
+</header>
+<div class="game">
+ <section class="arena" aria-label="遊戲棋盤">
+  <div class="arena-bar"><div class="turn turn-human" id="turn" role="status" aria-live="polite">◉ PLAYER · 輪到你</div><div class="arena-shortcuts"><div class="mission-hud" id="missionHud" aria-label="三個目標的即時占領狀態"></div><button type="button" class="help-quick" id="tutorialQuick" aria-label="開啟遊戲教學">？ 教學</button></div></div>
+  <div class="battle-stage" id="stage">
+    <div class="board-frame"><div class="board" id="board" aria-label="五乘五數字棋盤"></div></div>
+    <svg class="move-line" id="moveLine" aria-hidden="true"><line id="moveStroke" x1="0" y1="0" x2="0" y2="0"/></svg>
+    <div class="effects-layer" id="effectsLayer" aria-hidden="true"></div>
+    <div class="arena-impact" id="arenaImpact" aria-hidden="true"></div>
+    <div class="board-flash hidden" id="boardFlash" aria-live="polite"></div>
+    <div class="board-toast hidden" id="boardToast" aria-live="polite"></div>
+    <div class="celebrate hidden" id="celebrate" aria-hidden="true"></div>
+    <div class="overlay hidden" id="result" role="dialog" aria-modal="true" aria-labelledby="resultTitle"><div class="dialog"><h2 id="resultTitle"></h2><div class="result-stars" id="resultStars" aria-label="目標取得結果"></div><p id="resultText"></p><button type="button" class="primary" id="again">再挑戰一次</button></div></div>
+  </div>
+ </section>
+ <aside class="tools" aria-label="遊戲設定">
+  <div class="tools-title"><span aria-hidden="true">⌘</span> 對戰控制台 <small>ARCADE MODE</small></div>
+  <div class="field"><label for="difficulty">AI 難度</label><select id="difficulty"><option value="easy">體驗 · 隨機走法</option><option value="medium" selected>挑戰 · 攻防判斷</option><option value="hard">高手 · 多步搜尋</option></select></div>
+  <div class="field"><label for="first">先後手</label><select id="first"><option value="human">學生先手</option><option value="ai">AI 先手</option><option value="random">隨機先手</option></select></div>
+  <div class="field"><label for="duration">時間限制</label><select id="duration"><option value="none" selected>不限時間（預設）</option><option value="60">60 秒</option><option value="90">90 秒</option><option value="120">120 秒</option><option value="custom">自訂秒數</option></select></div>
+  <div class="field hidden" id="customTimeWrap"><label for="customSeconds">自訂時間：15～3600 秒</label><input id="customSeconds" type="number" inputmode="numeric" min="15" max="3600" step="1" value="180" /></div>
+  <div class="buttons"><button type="button" class="primary" id="start">↻ 重新開戰</button><button type="button" class="secondary" id="hint" disabled>◇ 顯示可走格</button><button type="button" class="secondary" id="tutorialBtn">☉ 教學示範</button></div>
+  <details><summary>玩法說明</summary><p>直接點棋盤上的數字，必須是目前發光數字的因數或倍數。選錯立即換手、提示預設關閉；先取得三個 ★ 目標中的兩個就獲勝。</p><p>每局共同生成起點與目標；每個目標至少要走兩步才能抵達。走到死路時系統更換共用起點，不額外占地。有限時模式時間到依目標數判定；不限時模式僅在達成目標或全盤無路時結束。</p></details>
+  <div class="status hidden" id="status" role="status" aria-live="polite"></div><div id="targets" class="targets" aria-label="目標數字列表"></div><div id="log" class="foot" aria-live="off"></div>
+ </aside>
+</div>
+<footer class="footer"><span class="legend"><span><i class="dot" style="background:#e7aa35"></i>金色 ✦ 目標</span><span><i class="dot" style="background:#298fea"></i>PLAYER</span><span><i class="dot" style="background:#e15b86"></i>AI RIVAL</span></span><span>鎖定數字 → 連鎖出招 → 爭奪星標｜單機離線</span></footer>
+
+<div class="tutorial-layer" id="tutorialLayer" aria-hidden="true">
+  <div class="tutorial-shade"></div>
+  <div class="tutorial-spotlight" id="tutorialSpotlight"></div>
+  <div class="tutorial-bubble" id="tutorialBubble" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle">
+    <div class="tutorial-badge">新手教學</div>
+    <h3 id="tutorialTitle">教學示範</h3>
+    <p id="tutorialText"></p>
+    <div class="tutorial-reminder"><strong>提醒</strong><span id="tutorialHintText"></span></div>
+    <div class="tutorial-actions">
+      <span class="tutorial-step" id="tutorialStep">1 / 1</span>
+      <div class="group">
+        <button type="button" class="tutorial-btn ghost" id="tutorialPrev">上一步</button>
+        <button type="button" class="tutorial-btn" id="tutorialSkip">關閉</button>
+        <button type="button" class="tutorial-btn primary" id="tutorialNext">下一步</button>
+      </div>
+    </div>
+  </div>
+</div>
+</main>
+<script>
+(()=>{'use strict';
+const BASE=[6,24,9,30,5,16,40,3,18,28,42,8,12,36,14,27,4,48,21,10,32,15,2,60,20];
+let TARGETS=[24,36,60], START=12;const CENTER=12;
+const el=id=>document.getElementById(id),board=el('board');
+let soundOn=false,audioCtx=null;
+function sound(type){
+ if(!soundOn)return;
+ try{
+  const AudioContext=window.AudioContext||window.webkitAudioContext;if(!AudioContext)return;
+  audioCtx ||= new AudioContext();if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+  const seq=type==='win'?[523,659,784,1046]:type==='goal'?[440,660,880]:type==='error'?[240,190]:type==='ai'?[390,330]:type==='start'?[420,630]:[580];
+  seq.forEach((freq,i)=>{
+   const o=audioCtx.createOscillator(),g=audioCtx.createGain(),t=audioCtx.currentTime+i*.095;
+   o.type=type==='error'?'triangle':'sine';o.frequency.setValueAtTime(freq,t);
+   g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.055,t+.016);g.gain.exponentialRampToValueAtTime(.0001,t+.14);
+   o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+.15);
+  });
+ }catch(_){} // Sound is optional; unavailable audio never blocks play.
+}
+function applyTheme(mode){
+ const theme=mode==='dark'?'dark':'light';document.documentElement.dataset.theme=theme;
+ el('themeToggle').textContent=theme==='dark'?'☀':'☾';
+ el('themeToggle').setAttribute('aria-label',theme==='dark'?'切換淺色模式':'切換深色模式');
+ document.querySelector('meta[name="theme-color"]').content=theme==='dark'?'#091224':'#f1f7ff';
+ try{localStorage.setItem('factor-battle-theme',theme)}catch(_){}
+}
+let initialTheme='light';try{initialTheme=localStorage.getItem('factor-battle-theme')||'light'}catch(_){}
+applyTheme(initialTheme);
+el('themeToggle').addEventListener('click',()=>applyTheme(document.documentElement.dataset.theme==='dark'?'light':'dark'));
+el('soundToggle').addEventListener('click',()=>{
+ soundOn=!soundOn;el('soundToggle').setAttribute('aria-pressed',String(soundOn));
+ el('soundToggle').setAttribute('aria-label',soundOn?'關閉遊戲音效':'開啟遊戲音效');
+ el('soundToggle').textContent=soundOn?'♫':'♪';if(soundOn)sound('start');
+});
+let nums=[],state=null,aiTimer=null,ticker=null,showHints=false,previousLayout='',visualTimers=[];
+let previousTargets='';
+const tutorial={active:false,step:0,restoreHints:false,previewEls:[],pauseAt:0,returnFocus:null};
+const later=(fn,ms)=>{const t=setTimeout(fn,ms);visualTimers.push(t);return t;};
+function stopVisuals(){visualTimers.forEach(clearTimeout);visualTimers=[];el('moveLine').classList.remove('tracing','rival');el('boardFlash').classList.add('hidden');el('boardToast').classList.add('hidden');el('celebrate').classList.add('hidden');el('effectsLayer').replaceChildren();el('arenaImpact').className='arena-impact';board.classList.remove('hit-board','error-board');}
+const relation=(a,b)=>a!==b&&(a%b===0||b%a===0);
+const count=(occ,who)=>occ.reduce((v,x)=>v+(x===who),0);
+const targetCount=occ=>[1,-1].map(w=>TARGETS.reduce((v,n)=>v+(occ[nums.indexOf(n)]===w),0));
+const moves=(occ,pivot)=>nums.map((n,i)=>i).filter(i=>occ[i]===0&&relation(pivot,nums[i]));
+// Jointly generate the starting number, three reachable targets, and their positions.
+function shortestDistances(start){
+ const distances=new Map([[start,0]]),queue=[start];
+ for(let i=0;i<queue.length;i++)for(const n of BASE){
+  if(!distances.has(n)&&relation(queue[i],n)){
+   distances.set(n,distances.get(queue[i])+1);queue.push(n);
+  }
+ }
+ return distances;
+}
+function shuffledCopy(values){
+ const result=[...values];for(let i=result.length-1;i>0;i--){
+  const j=Math.floor(Math.random()*(i+1));[result[i],result[j]]=[result[j],result[i]];
+ }return result;
+}
+function layout(){
+ // The graph is determined by arithmetic, not the physical placement of cells.
+ // Select one complete opening with all goals 2–3 steps away from the anchor.
+ for(let attempt=0;attempt<2500;attempt++){
+  const start=BASE[Math.floor(Math.random()*BASE.length)];
+  const distance=shortestDistances(start);
+  if(BASE.filter(n=>relation(start,n)).length<3)continue;
+  const candidates=shuffledCopy(BASE.filter(n=>n!==start&&distance.get(n)>=2&&distance.get(n)<=3&&BASE.filter(x=>relation(n,x)).length>=2));
+  const targets=[];
+  for(const n of candidates){
+   // Each goal has at least two alternative first steps in the full graph.
+   const branches=BASE.filter(first=>relation(start,first)&&first!==n&&
+     (relation(first,n)||BASE.some(mid=>mid!==start&&mid!==first&&mid!==n&&relation(first,mid)&&relation(mid,n))));
+   if(branches.length<2)continue;
+   if(targets.every(t=>!relation(t,n))){targets.push(n);if(targets.length===3)break;}
+  }
+  if(targets.length!==3)continue;
+  const shuffled=shuffledCopy(BASE.filter(n=>n!==start));shuffled.splice(CENTER,0,start);
+  const pos=targets.map(n=>shuffled.indexOf(n));
+  const separated=pos.every((p,i)=>pos.slice(i+1).every(q=>Math.abs(Math.floor(p/5)-Math.floor(q/5))+Math.abs(p%5-q%5)>=3));
+  if(!separated||new Set(pos.map(p=>Math.floor(p/5))).size<2||new Set(pos.map(p=>p%5)).size<2)continue;
+  if(shuffled.join(',')===previousLayout)continue;
+  START=start;TARGETS=targets.sort((a,b)=>a-b);previousLayout=shuffled.join(',');return shuffled;
+ }
+ throw new Error('無法產生符合條件的起點與目標組合');
+}
+function status(msg,style=''){el('status').textContent=msg;el('status').className='status '+style;}
+function timeStr(t){return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');}
+function timeExpired(){return state && state.deadline!==null && !tutorial.active && Date.now()>=state.deadline;}
+function currentTimeLabel(){return state&&state.deadline!==null?timeStr(Math.max(0,Math.ceil((state.deadline-(tutorial.active?tutorial.pauseAt:Date.now()))/1000))):'∞ 不限時';}
+function readDuration(){const value=el('duration').value;if(value==='none')return null;if(value==='custom'){const seconds=Number(el('customSeconds').value);return Number.isInteger(seconds)&&seconds>=15&&seconds<=3600?seconds:120;}return Number(value);}
+function updateDurationUI(){el('customTimeWrap').classList.toggle('hidden',el('duration').value!=='custom');}
+function updateTurn(){const text=!state||state.over?'◆ 本局結束':state.turn===1?'◆ PLAYER · 輪到你出招':state.turn===-1?'✦ AI RIVAL · 正在出招':'◇ 正在更新棋盤';el('turn').textContent=text;el('turn').className='turn '+(state?.turn===-1?'turn-ai':'turn-human');}
+function draw(){
+ const oldScore=el('hs').textContent+'|'+el('as').textContent;
+ board.replaceChildren();const legal=state&&!state.over&&state.turn===1?new Set(moves(state.occ,state.pivot)):new Set();
+ nums.forEach((n,i)=>{
+  const b=document.createElement('button');b.type='button';b.className='cell';b.textContent=n;
+  b.setAttribute('aria-label',n+(TARGETS.includes(n)?'，目標數字':'')+'，'+(state?(state.occ[i]===1?'你已占領':state.occ[i]===-1?'AI 已占領':state.occ[i]===2?'中立起點':'尚未占領'):'尚未占領'));
+  if(TARGETS.includes(n)){b.classList.add('target');if(!state || state.occ[i]===0){const tag=document.createElement('span');tag.className='target-tag';tag.textContent='目標';b.append(tag);}}
+  if(state){if(state.occ[i]===1)b.classList.add('human');if(state.occ[i]===-1)b.classList.add('ai');if(state.occ[i]===2)b.classList.add('anchor');if(state.last===i&&state.occ[i]!==2){b.classList.add('last');const badge=document.createElement('span');badge.className='last-badge';badge.textContent='最新';b.append(badge);}if(state.pivot===n){b.classList.add('active-pivot');const ring=document.createElement('span');ring.className='pivot-ring';ring.setAttribute('aria-hidden','true');const label=document.createElement('span');label.className='pivot-label';label.textContent='起點';b.append(ring,label);}if(showHints&&legal.has(i))b.classList.add('legal');}
+  b.disabled=!state||state.over||state.turn!==1||state.occ[i]!==0;
+  b.addEventListener('click',()=>pick(i));board.append(b);
+ });
+ const [h,a]=state?targetCount(state.occ):[0,0];el('hs').textContent=h+' / 2';el('as').textContent=a+' / 2';if(oldScore!==el('hs').textContent+'|'+el('as').textContent)document.querySelectorAll('.scorebox').forEach(e=>{e.classList.remove('score-bump');void e.offsetWidth;e.classList.add('score-bump')});
+ el('hint').disabled=!state||state.over||state.turn!==1;el('hint').textContent=showHints?'◇ 隱藏可走格':'◇ 顯示可走格';
+ for(const [id,k] of [['hpips',h],['apips',a]])el(id).querySelectorAll('i').forEach((pip,i)=>pip.classList.toggle('filled',i<k));
+ updateTurn();
+ document.querySelector('.arena').classList.toggle('ai-phase',!!state&&!state.over&&state.turn===-1);
+ document.querySelector('.arena').classList.toggle('player-phase',!!state&&!state.over&&state.turn===1);
+ const hud=el('missionHud');hud.replaceChildren();for(const n of TARGETS){const v=state?state.occ[nums.indexOf(n)]:0;const chip=document.createElement('div');chip.className='mission-chip'+(v===1?' human':v===-1?' ai':'');chip.setAttribute('aria-label','目標 '+n+'：'+(v===1?'玩家已取得':v===-1?'AI 已取得':'未取得'));const star=document.createElement('i');star.textContent=v===1?'◆':v===-1?'✦':'★';const num=document.createElement('b');num.textContent=n;const owner=document.createElement('small');owner.textContent=v===1?'你':v===-1?'AI':'';chip.append(star,num,owner);hud.append(chip);}
+ el('targets').replaceChildren();for(const n of TARGETS){const chip=document.createElement('div');chip.className='target-chip';const who=state?state.occ[nums.indexOf(n)]:0;if(who===1)chip.classList.add('human');if(who===-1)chip.classList.add('ai');const label=document.createElement('span');label.textContent=who===1?'你已取得':who===-1?'AI 已取得':'尚未取得';chip.append(document.createTextNode('★ '+n+' '),label);el('targets').append(chip);}
+}
+function end(winner,reason){
+ if(!state||state.over)return;state.over=true;clearTimeout(aiTimer);clearInterval(ticker);stopVisuals();
+ el('clock').textContent=currentTimeLabel();draw();
+ const [h,a]=targetCount(state.occ);el('resultTitle').textContent=winner===1?'🏆 PLAYER WIN！':winner===-1?'✦ AI RIVAL WIN':'◇ DRAW · 平手';sound(winner===1?'win':winner===-1?'ai':'goal');
+ el('resultText').textContent=reason+'｜你取得 '+h+' 個目標；AI 取得 '+a+' 個目標。棋盤占地：你 '+count(state.occ,1)+' 格、AI '+count(state.occ,-1)+' 格。';
+ const stars=el('resultStars');stars.replaceChildren();for(const n of TARGETS){const who=state.occ[nums.indexOf(n)],em=document.createElement('span');em.className='result-star'+(who===1?' human':who===-1?' ai':'');em.textContent='★ '+n+(who===1?' 你':who===-1?' AI':'');stars.append(em);}
+ flash(el('resultTitle').textContent,winner===1?'win':'ai');later(()=>el('result').classList.remove('hidden'),1100);status(el('resultTitle').textContent+' '+reason,winner===1?'good':winner===-1?'bad':'');
+}
+function settle(reason){if(!state||state.over)return;const [h,a]=targetCount(state.occ);end(h>a?1:a>h?-1:0,reason+'，依目標數量判定');}
+function neutralPivot(occ){
+ // Prefer an already occupied non-target number: do not grant ownership or block remaining targets.
+ const candidates=nums.filter(n=>!TARGETS.includes(n)&&moves(occ,n).length>0);
+ if(!candidates.length)return null;
+ candidates.sort((a,b)=>moves(occ,b).length-moves(occ,a).length||Math.abs(a-START)-Math.abs(b-START)||a-b);
+ return candidates[0];
+}
+function continueTurn(nextWho){
+ const [h,a]=targetCount(state.occ);if(h>=2){end(1,'先取得兩個目標數字');return;}if(a>=2){end(-1,'先取得兩個目標數字');return;}
+ if(timeExpired()){settle('時間到');return;}
+ let reset=false;if(!moves(state.occ,state.pivot).length){const newPivot=neutralPivot(state.occ);if(newPivot===null){settle('所有合法路線已用盡');return;}state.pivot=newPivot;state.last=nums.indexOf(newPivot);reset=true;el('log').textContent='遇到死路，系統將共用起點改為 '+newPivot+'；雙方都沒有額外占地。';}
+ state.turn=nextWho;showHints=false;draw();
+ if(reset)toast('新起點：'+state.pivot);if(nextWho===-1){status('AI 正在思考…');aiTimer=later(aiMove,reset?900:700);}
+ else status('輪到你，請直接在棋盤選數字。');
+}
+function flash(text,kind=''){const e=el('boardFlash');e.textContent=text;e.className='board-flash '+kind;}
+function toast(text,bad=false){const e=el('boardToast');e.textContent=text;e.className='board-toast'+(bad?' bad':'');later(()=>e.classList.add('hidden'),950);}
+function sparkle(i){const host=el('celebrate'),stage=el('stage'),cell=board.children[i];if(!cell)return;host.replaceChildren();const sr=stage.getBoundingClientRect(),r=cell.getBoundingClientRect();const x=r.left-sr.left+r.width/2,y=r.top-sr.top+r.height/2;for(let k=0;k<22;k++){const bit=document.createElement('i');bit.className='confetti';bit.style.left=x+'px';bit.style.top=y+'px';const a=k*Math.PI*2/22,dist=50+Math.random()*110;bit.style.setProperty('--x',Math.round(Math.cos(a)*dist)+'px');bit.style.setProperty('--y',Math.round(Math.sin(a)*dist)+'px');bit.style.setProperty('--r',Math.round(Math.random()*720)+'deg');bit.style.setProperty('--c',['#ffd23f','#36d5ff','#ff5a85','#85ef88'][k%4]);host.append(bit);}host.classList.remove('hidden');later(()=>host.classList.add('hidden'),1100);}
+function trace(fromIndex,toIndex,who=-1){const from=board.children[fromIndex],to=board.children[toIndex],stage=el('stage');if(!from||!to)return;const s=stage.getBoundingClientRect(),a=from.getBoundingClientRect(),b=to.getBoundingClientRect(),line=el('moveStroke');line.setAttribute('x1',a.left-s.left+a.width/2);line.setAttribute('y1',a.top-s.top+a.height/2);line.setAttribute('x2',b.left-s.left+b.width/2);line.setAttribute('y2',b.top-s.top+b.height/2);el('moveLine').classList.toggle('rival',who===-1);el('moveLine').classList.add('tracing');}
+
+function impact(kind='human'){
+ const e=el('arenaImpact');e.className='arena-impact';void e.offsetWidth;e.className='arena-impact hit '+(kind==='ai'?'rival':kind==='error'?'error':'');
+ board.classList.remove('hit-board','error-board');void board.offsetWidth;board.classList.add(kind==='error'?'error-board':'hit-board');
+ later(()=>{e.className='arena-impact';board.classList.remove('hit-board','error-board')},460);
+}
+function numberFx(fromIndex,toIndex,who=-1){
+ const from=board.children[fromIndex],to=board.children[toIndex],stage=el('stage');if(!from||!to)return;
+ const sr=stage.getBoundingClientRect(),a=from.getBoundingClientRect(),b=to.getBoundingClientRect();
+ const fx=document.createElement('div');fx.className='attack-orb'+(who===-1?' rival':'');
+ const x=a.left-sr.left+a.width/2,y=a.top-sr.top+a.height/2,dx=b.left-a.left+(b.width-a.width)/2,dy=b.top-a.top+(b.height-a.height)/2;
+ fx.style.left=x+'px';fx.style.top=y+'px';el('effectsLayer').append(fx);
+ if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches&&fx.animate){fx.animate([{transform:'translate(0,0) scale(.7)',opacity:.6},{transform:'translate('+dx+'px,'+dy+'px) scale(1.5)',opacity:1,offset:.78},{transform:'translate('+dx+'px,'+dy+'px) scale(2.4)',opacity:0}],{duration:490,fill:'forwards',easing:'cubic-bezier(.15,.7,.18,1)'})}
+ later(()=>fx.remove(),530);
+}
+function equationFx(i,from,to,who=1,error=false){
+ const cell=board.children[i],stage=el('stage');if(!cell)return;
+ const sr=stage.getBoundingClientRect(),r=cell.getBoundingClientRect();
+ const fx=document.createElement('div');fx.className='equation-pop'+(who===-1?' rival':'')+(error?' error':'');
+ fx.textContent=error?'✕ '+to+' 與 '+from+' 無因數／倍數關係':to>from?from+' × '+(to/from)+' = '+to:from+' ÷ '+(from/to)+' = '+to;
+ fx.style.left=Math.max(75,Math.min(sr.width-75,r.left-sr.left+r.width/2))+'px';
+ fx.style.top=Math.max(50,r.top-sr.top+Math.min(32,r.height*.38))+'px';
+ el('effectsLayer').append(fx);later(()=>fx.remove(),800);
+}
+function missionGain(n){
+ const chip=[...el('missionHud').children].find(x=>x.querySelector('b')?.textContent===String(n));
+ if(chip){chip.classList.remove('just-taken');void chip.offsetWidth;chip.classList.add('just-taken');later(()=>chip.classList.remove('just-taken'),820)}
+}
+
+function doMove(i,who){
+ const old=state.pivot,n=nums[i],oldIndex=nums.indexOf(old);state.occ[i]=who;state.pivot=n;state.last=i;
+ const statement=Math.max(old,n)+' = '+Math.min(old,n)+' × '+Math.max(old,n)/Math.min(old,n);
+ el('log').textContent=(who===1?'你':'AI')+' 占領 '+n+'；'+statement;
+ draw();const cell=board.children[i];cell.classList.add('claim-pop');impact(who===1?'human':'ai');equationFx(i,old,n,who); 
+ if(TARGETS.includes(n)){sound('goal');cell.classList.add('target-capture');sparkle(i);missionGain(n);flash((who===1?'PLAYER':'AI RIVAL')+' 奪下 ✦ '+n,who===1?'win':'ai');later(()=>el('boardFlash').classList.add('hidden'),1000);}
+ else {sound(who===1?'move':'ai');toast((who===1?'你':'AI')+'：'+statement);}
+ state.turn=0;later(()=>{if(state&&!state.over)continueTurn(-who);},TARGETS.includes(n)?1080:560);
+}
+function pick(i){
+ if(tutorial.active||!state||state.over||state.turn!==1||state.occ[i]!==0)return;
+ if(timeExpired()){settle('時間到');return;}
+ const n=nums[i],old=state.pivot;if(!relation(old,n)){
+  state.turn=-1;showHints=false;draw();sound('error');board.children[i].classList.add('invalid');impact('error');equationFx(i,old,n,1,true);toast('✕ 選錯，換 AI 出招',true);status('選錯，換 AI。','bad');
+  aiTimer=later(aiMove,950);return;
+ }
+ state.turn=0;showHints=false;draw();const oldIndex=nums.indexOf(old);board.children[i].classList.add('player-aim');trace(oldIndex,i,1);numberFx(oldIndex,i,1);
+ aiTimer=later(()=>{if(!state||state.over)return;el('moveLine').classList.remove('tracing','rival');doMove(i,1);},460);
+}
+function evaluation(occ,pivot){
+ const [h,a]=targetCount(occ);let score=(a-h)*1000;
+ const legal=moves(occ,pivot);score+=(legal.filter(i=>TARGETS.includes(nums[i])).length)*2;
+ // Estimated minimum number of moves to each unclaimed target on the undirected factor/multiple graph.
+ for(const target of TARGETS){const ti=nums.indexOf(target);if(occ[ti]!==0)continue;
+  const visited=new Set([pivot]),q=[[pivot,0]];let distance=9;
+  for(let k=0;k<q.length;k++){const [v,d]=q[k];if(v===target){distance=d;break;}if(d>=6)continue;
+   for(let j=0;j<nums.length;j++)if(occ[j]===0&&relation(v,nums[j])&&!visited.has(nums[j])){visited.add(nums[j]);q.push([nums[j],d+1]);}
+  }
+  score+=(distance===9?-4:Math.max(0,6-distance))*3;
+ }
+ return score;
+}
+function minimax(occ,pivot,turn,depth,alpha,beta){
+ const [h,a]=targetCount(occ);if(a>=2)return 100000+depth;if(h>=2)return -100000-depth;
+ if(depth===0)return evaluation(occ,pivot);
+ let available=moves(occ,pivot);
+ if(!available.length){const next=neutralPivot(occ);return next===null?(a-h)*10000:minimax(occ,next,turn,depth-1,alpha,beta);}
+ available.sort((i,j)=>Number(TARGETS.includes(nums[j]))-Number(TARGETS.includes(nums[i])));
+ if(depth>=3)available=available.slice(0,11);
+ let best=turn===-1?-Infinity:Infinity;
+ for(const i of available){occ[i]=turn;const val=minimax(occ,nums[i],-turn,depth-1,alpha,beta);occ[i]=0;
+  if(turn===-1){best=Math.max(best,val);alpha=Math.max(alpha,best);}else{best=Math.min(best,val);beta=Math.min(beta,best);}if(beta<=alpha)break;
+ }return best;
+}
+function selectAI(){
+ const available=moves(state.occ,state.pivot);if(!available.length)return -1;
+ const difficulty=el('difficulty').value;if(difficulty==='easy')return available[Math.floor(Math.random()*available.length)];
+ const occ=state.occ;let best=-Infinity,choices=[];
+ for(const i of available){occ[i]=-1;const [h,a]=targetCount(occ);let score;
+  if(a>=2)score=1e7;
+  else if(difficulty==='medium'){
+   const replies=moves(occ,nums[i]);let humanCanWin=false;
+   for(const j of replies){occ[j]=1;if(targetCount(occ)[0]>=2)humanCanWin=true;occ[j]=0;if(humanCanWin)break;}
+   score=evaluation(occ,nums[i])-(humanCanWin?100000:0)+ (TARGETS.includes(nums[i])?200:0) + Math.random()*0.01;
+  }else score=minimax(occ,nums[i],1,4,-Infinity,Infinity);
+  occ[i]=0;if(score>best){best=score;choices=[i];}else if(score===best)choices.push(i);
+ }return choices[Math.floor(Math.random()*choices.length)];
+}
+function aiMove(){if(tutorial.active||!state||state.over||state.turn!==-1)return;if(timeExpired()){settle('時間到');return;}
+ const i=selectAI();if(i<0){const next=neutralPivot(state.occ);if(next===null){settle('所有合法路線已用盡');return;}state.pivot=next;state.last=nums.indexOf(next);draw();toast('新起點：'+next);aiTimer=later(aiMove,750);return;}const oldIndex=nums.indexOf(state.pivot);board.children[oldIndex].classList.add('ai-from');board.children[i].classList.add('ai-aim');trace(oldIndex,i,-1);numberFx(oldIndex,i,-1);aiTimer=later(()=>{if(!state||state.over)return;el('moveLine').classList.remove('tracing','rival');el('boardFlash').classList.add('hidden');doMove(i,-1);},950);
+}
+
+function clearTutorialPreview(){
+ tutorial.previewEls.forEach(node=>node&&node.classList&&node.classList.remove('board-guide-pulse','ai-aim','player-aim','invalid'));
+ tutorial.previewEls=[]; el('moveLine').classList.remove('tracing','rival');
+ if(tutorial.restoreHints){showHints=false;tutorial.restoreHints=false;draw();}el('effectsLayer').replaceChildren();
+}
+function tutorialTargetRect(target){
+ if(!target)return {left:window.innerWidth/2-120,top:window.innerHeight/2-90,width:240,height:70};
+ const r=target.getBoundingClientRect();
+ return {left:r.left-8,top:r.top-8,width:r.width+16,height:r.height+16};
+}
+function tutorialPlaceBubble(rect){
+ const bubble=el('tutorialBubble'),vw=innerWidth,vh=innerHeight;
+ const bounds=bubble.getBoundingClientRect(),bw=Math.min(bounds.width||360,vw-24),bh=Math.min(bounds.height||245,vh-24);
+ const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
+ const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+ const raw=[
+  {left:rect.left+rect.width+20,top:cy-bh/2},
+  {left:rect.left-bw-20,top:cy-bh/2},
+  {left:cx-bw/2,top:rect.top+rect.height+20},
+  {left:cx-bw/2,top:rect.top-bh-20}
+ ];
+ const choices=raw.map((pos,rank)=>{
+  const left=clamp(pos.left,12,vw-bw-12),top=clamp(pos.top,12,vh-bh-12);
+  const overlapX=Math.max(0,Math.min(left+bw,rect.left+rect.width)-Math.max(left,rect.left));
+  const overlapY=Math.max(0,Math.min(top+bh,rect.top+rect.height)-Math.max(top,rect.top));
+  return {left,top,score:overlapX*overlapY*100+rank};
+ });
+ choices.sort((a,b)=>a.score-b.score);
+ bubble.style.left=choices[0].left+'px';bubble.style.top=choices[0].top+'px';
+}
+function tutorialLegalIndex(){
+ if(!state)return -1; const legal=moves(state.occ,state.pivot); return legal.length?legal[0]:-1;
+}
+function tutorialIllegalIndex(){
+ if(!state)return -1; return nums.findIndex((n,i)=>state.occ[i]===0 && !relation(state.pivot,n));
+}
+function tutorialAIIndex(){
+ if(!state)return -1; const legal=moves(state.occ,state.pivot);return legal.find(i=>TARGETS.includes(nums[i]))??legal[0]??-1;
+}
+function tutorialSteps(){
+ const legal=tutorialLegalIndex(), illegal=tutorialIllegalIndex(), aiPick=tutorialAIIndex();
+ return [
+  {title:'歡迎來到教學示範',text:'這個遊戲的目標是：<b>先搶到三個星號目標中的兩個</b>。畫面上的重點資訊都會集中在棋盤附近，你不用一直看右側說明。',hint:'先記住兩件事：發光框是目前的起點；有星號的數字是你要搶的目標。',target:()=>board.children[nums.indexOf(state.pivot)],on(){clearTutorialPreview();}},
+  {title:'先看目前的起點',text:'棋盤上有青綠色閃爍框與「起點」標記的數字，就是本回合的出發數字。<b>你下一步只能點它的因數或倍數</b>。',hint:'例如起點是 12，可選尚未占領的 3、4、6、24、36 等數字；但不能直接選 18。',target:()=>board.children[nums.indexOf(state.pivot)],on(){clearTutorialPreview();const cell=board.children[nums.indexOf(state.pivot)]; if(cell){cell.classList.add('board-guide-pulse'); tutorial.previewEls=[cell];}}},
+  {title:'再看三個星號目標',text:'有星號的數字就是本局要搶的目標。只要先取得其中兩個，就能直接獲勝。上方小徽章也會同步顯示誰已經搶到。',hint:'目標格會在棋盤上發亮，搶到時還會有明顯動畫，讓學生能馬上知道進度。',target:()=>document.getElementById('missionHud'),on(){clearTutorialPreview(); TARGETS.forEach(n=>{const c=board.children[nums.indexOf(n)]; if(c){c.classList.add('board-guide-pulse'); tutorial.previewEls.push(c);}});}},
+  {title:'合法走法示範',text: legal>=0 ? ('以目前這局來看，<b>'+nums[legal]+'</b> 是一個合法走法，因為它和起點 <b>'+state.pivot+'</b> 之間有因數／倍數關係。') : '目前這局暫時沒有可用的示範步，但原則仍然相同：只能走到和起點有因數／倍數關係的數字。',hint:'教學示範會暫時幫你打開綠色提示。正式遊玩時預設不提示，要靠學生自己判斷。',target:()=> legal>=0 ? board.children[legal] : board, on(){clearTutorialPreview(); showHints=true; tutorial.restoreHints=true; draw(); if(legal>=0){const c=board.children[legal]; c.classList.add('board-guide-pulse'); tutorial.previewEls=[c];}}},
+  {title:'如果選錯會怎麼樣？',text: illegal>=0 ? ('像 <b>'+nums[illegal]+'</b> 這格就不能直接走，因為它和起點 <b>'+state.pivot+'</b> 沒有因數／倍數關係。選錯時，<b>不會占領這格，回合會直接換給 AI</b>。') : '若你點到和起點沒有因數／倍數關係的數字，就會立刻換 AI。',hint:'這個規則會讓學生更專心觀察棋盤與計算關係，而不是亂點試答案。',target:()=> illegal>=0 ? board.children[illegal] : board, on(){clearTutorialPreview(); if(illegal>=0){const c=board.children[illegal]; c.classList.add('invalid'); tutorial.previewEls=[c];}}},
+  {title:'輪到 AI 時怎麼看？',text: aiPick>=0 ? ('輪到 AI 時，系統會用軌跡與鎖定動畫示範它從 <b>'+state.pivot+'</b> 準備移動到 <b>'+nums[aiPick]+'</b>。你只要看棋盤，就能知道 AI 選了哪一格。') : '輪到 AI 時，系統會直接在棋盤上用軌跡與鎖定動畫提示它要走哪一格。',hint:'學生不需要再看「本回合從 xx 出發」的文字，重點都在棋盤上的動畫。',target:()=> aiPick>=0 ? board.children[aiPick] : board, on(){clearTutorialPreview(); if(aiPick>=0){const from=nums.indexOf(state.pivot); trace(from,aiPick,-1); numberFx(from,aiPick,-1); const c=board.children[aiPick]; c.classList.add('ai-aim'); tutorial.previewEls=[c];}}},
+  {title:'開始挑戰吧！',text:'教學就到這裡。接下來直接在棋盤上判斷：<b>從起點能走到哪裡？哪一格可以更快搶到星號目標？</b> 先拿到兩個目標就贏了。',hint:'如果忘記規則，隨時可以再按右側的「教學示範」。',target:()=>board.children[nums.indexOf(state.pivot)],on(){clearTutorialPreview();}}
+ ];
+}
+function renderTutorialStep(){
+ if(!tutorial.active || !state)return;
+ const steps=tutorialSteps();
+ tutorial.step=Math.max(0,Math.min(steps.length-1,tutorial.step));
+ const step=steps[tutorial.step];
+ step.on && step.on();
+ const layer=el('tutorialLayer'), spot=el('tutorialSpotlight');
+ const target=step.target ? step.target() : document.querySelector('.arena');
+ const rect=tutorialTargetRect(target);
+ spot.style.left=rect.left+'px'; spot.style.top=rect.top+'px'; spot.style.width=rect.width+'px'; spot.style.height=rect.height+'px';
+ el('tutorialTitle').innerHTML=step.title;
+ el('tutorialText').innerHTML=step.text;
+ el('tutorialHintText').innerHTML=step.hint;
+ tutorialPlaceBubble(rect);
+ el('tutorialStep').textContent=(tutorial.step+1)+' / '+steps.length;
+ el('tutorialPrev').disabled=tutorial.step===0;
+ el('tutorialNext').textContent=tutorial.step===steps.length-1?'完成':'下一步';
+ layer.setAttribute('aria-hidden','false');
+}
+function closeTutorial(){
+ if(!tutorial.active)return;
+ const pausedFor=Date.now()-tutorial.pauseAt;
+ tutorial.active=false;clearTutorialPreview();
+ if(state&&state.deadline!==null&&!state.over){state.deadline+=pausedFor;el('clock').textContent=currentTimeLabel();}
+ const layer=el('tutorialLayer');layer.classList.remove('active');layer.setAttribute('aria-hidden','true');
+ if(state&&!state.over&&state.turn===-1){clearTimeout(aiTimer);aiTimer=later(aiMove,650);}
+ if(tutorial.returnFocus?.isConnected)tutorial.returnFocus.focus();
+ tutorial.returnFocus=null;
+}
+function openTutorial(auto=false){
+ if(!state)start();
+ if(tutorial.active)return;
+ // Wait for any existing move animation to finish before freezing the board.
+ if(state.turn===0&&!state.over){later(()=>openTutorial(auto),720);return;}
+ clearTimeout(aiTimer);stopVisuals();
+ tutorial.returnFocus=document.activeElement;
+ tutorial.pauseAt=Date.now();tutorial.active=true;tutorial.step=0;
+ const layer=el('tutorialLayer');layer.classList.add('active');
+ try{if(auto)localStorage.setItem('factor-battle-tutorial-seen','1')}catch(_){ }
+ draw();renderTutorialStep();el('tutorialNext').focus();
+}
+function nextTutorial(){ const total=tutorialSteps().length; if(tutorial.step>=total-1){closeTutorial(); return;} tutorial.step++; renderTutorialStep(); }
+function prevTutorial(){ tutorial.step=Math.max(0,tutorial.step-1); renderTutorialStep(); }
+
+function start(){
+ clearTimeout(aiTimer);clearInterval(ticker);stopVisuals();nums=layout();let first=el('first').value;if(first==='random')first=Math.random()<.5?'human':'ai';
+ const duration=readDuration();el('effectsLayer').replaceChildren();state={occ:nums.map(n=>n===START?2:0),pivot:START,last:nums.indexOf(START),turn:first==='human'?1:-1,over:false,deadline:duration===null?null:Date.now()+duration*1000};
+ sound('start');showHints=false;el('result').classList.add('hidden');el('clock').textContent=currentTimeLabel();el('clock').classList.remove('urgent');el('log').textContent='新局已共同產生起點 '+START+' 與三個目標 '+TARGETS.join('、')+'；每個目標至少要走兩步。';
+ draw(); if(tutorial.active) renderTutorialStep(); flash('READY · GO！','win');later(()=>el('boardFlash').classList.add('hidden'),750);if(state.deadline!==null)ticker=setInterval(()=>{if(!state||state.over)return;el('clock').textContent=currentTimeLabel();el('clock').classList.toggle('urgent',state.deadline!==null&&state.deadline-Date.now()<=15000);if(timeExpired())settle('時間到');},200);
+ if(state.turn===-1){status('AI 先手，正在尋找目標路線…');aiTimer=later(aiMove,700);}else status('你先手！請從 '+START+' 出發，先奪下兩個 ★ 目標。');
+}
+el('start').addEventListener('click',start);el('again').addEventListener('click',start);
+el('hint').addEventListener('click',()=>{showHints=!showHints;draw();});
+el('duration').addEventListener('change',updateDurationUI);
+el('tutorialBtn').addEventListener('click',()=>openTutorial(false));
+el('tutorialQuick').addEventListener('click',()=>openTutorial(false));
+el('tutorialNext').addEventListener('click',nextTutorial);
+el('tutorialPrev').addEventListener('click',prevTutorial);
+el('tutorialSkip').addEventListener('click',closeTutorial);
+window.addEventListener('resize',()=>{if(tutorial.active)renderTutorialStep();});
+window.addEventListener('keydown',e=>{if(e.key==='Escape'&&tutorial.active){e.preventDefault();closeTutorial();}});
+updateDurationUI();start();
+try{if(!localStorage.getItem('factor-battle-tutorial-seen'))setTimeout(()=>openTutorial(true),350);}catch(_){setTimeout(()=>openTutorial(true),350);}
+})();
+</script></body></html>

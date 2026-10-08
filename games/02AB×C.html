@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>數字卡：AB×C｜雙人桌面對戰（90°相對）</title>
+  <style>
+    :root{
+      --bg1:#f6fbff; --bg2:#eef6ff;
+      --ink:#13223a; --muted:#4c6282;
+      --line:rgba(19,34,58,.14);
+      --ok:#1aa66a; --bad:#d94452;
+      --btn:#e7f0ff;
+      --shadow: 0 10px 28px rgba(19,34,58,.12);
+      --r:18px; --r2:14px;
+    }
+    *{box-sizing:border-box}
+    html,body{
+      height:100%; margin:0;
+      background: radial-gradient(1200px 700px at 50% 0%, var(--bg2) 0%, var(--bg1) 60%);
+      color:var(--ink);
+      font-family: system-ui,-apple-system,"Segoe UI",Arial;
+    }
+    button{font:inherit}
+    .app{height:100dvh; display:flex; flex-direction:column}
+
+    .portraitHint{
+      display:none; position:fixed; inset:0;
+      background: rgba(19,34,58,.55);
+      z-index:999; align-items:center; justify-content:center;
+      padding: 20px; text-align:center; color:#fff; font-weight:1000;
+    }
+    .portraitHint .box{
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.22);
+      border-radius: 18px; padding: 18px 16px; max-width: 520px;
+    }
+    .portraitHint .box .t{font-size:22px; margin-bottom:8px}
+    .portraitHint .box .s{font-size:16px; opacity:.92; line-height:1.35}
+    @media (orientation: portrait){ .portraitHint{display:flex;} }
+
+    .topbar{
+      padding: 10px 12px;
+      border-bottom:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.70));
+      position: sticky; top:0; z-index:50;
+      backdrop-filter: blur(8px);
+    }
+    .toprow{
+      display:flex; align-items:center; gap:10px;
+      flex-wrap:nowrap; overflow:auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom:2px;
+    }
+    .badge{
+      padding:6px 10px; border:1px solid var(--line);
+      border-radius:999px; background:rgba(255,255,255,.78);
+      font-weight:1000; white-space:nowrap;
+    }
+    .pill{
+      padding:6px 10px; border:1px solid var(--line);
+      border-radius:999px; background:rgba(255,255,255,.78);
+      color:var(--muted); font-weight:900; white-space:nowrap;
+    }
+    .pill strong{color:var(--ink)}
+    .toggle{
+      display:flex; align-items:center; gap:8px;
+      padding:6px 10px; border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.78);
+      color:var(--muted);
+      font-weight:1000;
+      white-space:nowrap;
+      user-select:none;
+    }
+    .toggle input{width:18px; height:18px}
+    .spacer{flex:1}
+    .btn{
+      background: linear-gradient(180deg, #ffffff, var(--btn));
+      border:1px solid var(--line);
+      color:var(--ink);
+      padding:10px 12px;
+      border-radius:12px;
+      box-shadow: var(--shadow);
+      cursor:pointer;
+      font-weight:1000;
+      touch-action: manipulation;
+      white-space:nowrap;
+    }
+    .btn:active{transform: translateY(1px)}
+    .btn.ghost{background:rgba(255,255,255,.78); box-shadow:none}
+    .btn:disabled{opacity:.45; cursor:not-allowed; transform:none}
+
+    .main{
+      flex:1;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      padding: 10px 12px 12px;
+      min-height:0;
+    }
+    .player{
+      background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.75));
+      border:1px solid var(--line);
+      border-radius: var(--r);
+      overflow:hidden;
+      box-shadow: var(--shadow);
+      position:relative;
+      min-height:0;
+    }
+
+    .rotWrap{
+      position:absolute; left:50%; top:50%;
+      width: var(--h); height: var(--w);
+      transform: translate(-50%,-50%);
+      transform-origin:center;
+      display:flex;
+    }
+    .player.left  .rotWrap{ transform: translate(-50%,-50%) rotate(90deg); }
+    .player.right .rotWrap{ transform: translate(-50%,-50%) rotate(-90deg); }
+
+    .rotContent{
+      width:100%; height:100%;
+      display:flex; flex-direction:column;
+      min-height:0;
+    }
+
+    .playerHeader{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding: 10px 10px 0;
+    }
+    .pname{font-weight:1000; letter-spacing:.5px; white-space:nowrap}
+    .statusTag{
+      padding: 6px 10px; border-radius: 999px; border:1px solid var(--line);
+      background:rgba(255,255,255,.78); color:var(--muted); font-weight:1000;
+      white-space:nowrap;
+    }
+    .statusTag.ok{color: var(--ok); border-color: rgba(26,166,106,.25); background: rgba(26,166,106,.08)}
+    .statusTag.bad{color: var(--bad); border-color: rgba(217,68,82,.25); background: rgba(217,68,82,.08)}
+
+    .inner{
+      padding: 10px 10px 12px;
+      display:flex; flex-direction:column;
+      gap:10px; min-height:0;
+    }
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+
+    .cards{display:flex; gap:10px; flex-wrap:wrap}
+    .cardBtn{
+      width:74px; height:74px;
+      border:none; background:transparent; padding:0;
+      cursor:pointer; user-select:none; touch-action: manipulation;
+    }
+    .card3d{
+      width:100%; height:100%;
+      border-radius: 18px;
+      border:1px solid rgba(19,34,58,.18);
+      box-shadow: 0 8px 18px rgba(19,34,58,.10);
+      position:relative;
+      transform-style: preserve-3d;
+      transition: transform .38s cubic-bezier(.2,.8,.2,1);
+      background: radial-gradient(120px 120px at 30% 20%, rgba(255,255,255,.95), rgba(215,232,255,.45));
+    }
+    .cardFace{
+      position:absolute; inset:0;
+      display:grid; place-items:center;
+      border-radius: 18px;
+      backface-visibility: hidden;
+      font-weight:1000;
+    }
+    .cardBack{
+      background:
+        radial-gradient(120px 120px at 30% 20%, rgba(255,255,255,.92), rgba(215,232,255,.30)),
+        repeating-linear-gradient(45deg, rgba(19,34,58,.10) 0 8px, rgba(255,255,255,.0) 8px 16px);
+      color: rgba(19,34,58,.30);
+      font-size: 18px;
+      letter-spacing: 1px;
+    }
+    .cardFront{
+      transform: rotateY(180deg);
+      font-size:30px;
+      color: var(--ink);
+      background: radial-gradient(120px 120px at 30% 20%, rgba(255,255,255,.95), rgba(215,232,255,.45));
+    }
+    .cardBtn.flipped .card3d{ transform: rotateY(180deg); }
+    .cardBtn:active .card3d{ transform: translateY(1px) scale(0.99); }
+    .cardBtn.flipped:active .card3d{ transform: rotateY(180deg) translateY(1px) scale(0.99); }
+
+    .cardBtn.used{opacity:.35; filter: grayscale(25%); cursor:not-allowed;}
+    .cardBtn.disabled{opacity:.45; cursor:not-allowed;}
+    .cardBtn.used, .cardBtn.disabled{pointer-events:none;}
+
+    .formula{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      background: rgba(19,34,58,.05);
+      border:1px solid var(--line);
+      border-radius: var(--r2);
+      padding: 10px;
+    }
+    .slot{
+      width:70px; height:56px;
+      border-radius: 14px;
+      border:1px dashed rgba(19,34,58,.28);
+      background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(19,34,58,.03));
+      display:grid; place-items:center;
+      font-weight:1000; font-size:26px;
+      cursor:pointer; user-select:none; touch-action: manipulation;
+    }
+    .slot.filled{border-style:solid; border-color: rgba(19,34,58,.20)}
+    .op{font-weight:1000; font-size:24px; color:var(--muted)}
+    .ans{
+      min-width:140px; height:56px;
+      border-radius: 14px;
+      border:1px solid rgba(19,34,58,.18);
+      background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(19,34,58,.03));
+      display:flex; align-items:center; justify-content:center;
+      font-weight:1000; font-size:26px;
+      padding: 0 12px;
+      letter-spacing: .5px;
+      cursor:pointer; user-select:none; touch-action: manipulation;
+    }
+    .hint{color:var(--muted); font-weight:1000}
+
+    .keypad{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:8px;
+      width:100%;
+    }
+    .kbtn{
+      height:52px;
+      border-radius: 14px;
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(19,34,58,.03));
+      color:var(--ink);
+      font-weight:1000;
+      font-size:18px;
+      cursor:pointer; user-select:none; touch-action: manipulation;
+      box-shadow: 0 6px 16px rgba(19,34,58,.10);
+    }
+    .kbtn.send{
+      background: linear-gradient(180deg, rgba(26,166,106,.22), rgba(26,166,106,.10));
+      font-weight:1200;
+    }
+    .kbtn.wide2{ grid-column: span 2; }
+    .kbtn:disabled{opacity:.45; cursor:not-allowed; transform:none; box-shadow:none}
+
+    .panelOverlay{
+      position:absolute; inset:0;
+      background: rgba(19,34,58,.35);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 12px;
+      z-index: 30;
+    }
+    .panelOverlay.show{ display:flex; }
+    .panelPopup{
+      width: min(420px, 92%);
+      border-radius: 18px;
+      border:1px solid rgba(19,34,58,.18);
+      background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,255,255,.82));
+      box-shadow: var(--shadow);
+      padding: 12px;
+    }
+    .panelPopup h3{margin:0 0 6px; font-size:18px}
+    .panelPopup .sub{color:var(--muted); font-weight:900; line-height:1.35}
+    .panelPopup .popActions{display:flex; gap:10px; margin-top:10px}
+    .panelPopup .popActions .btn{flex:1}
+
+    .bigWord{
+      font-weight:1200;
+      font-size: clamp(58px, 7.6vw, 92px);
+      line-height: 1.0;
+      text-align:center;
+      margin: 6px 0 4px;
+      letter-spacing: .5px;
+    }
+    .bigWord.ok{color: var(--ok)}
+    .bigWord.bad{color: var(--bad)}
+    .bigWord.info{color: var(--ink)}
+
+    .autoNext{
+      margin-top:8px;
+      text-align:center;
+      color: var(--muted);
+      font-weight:1000;
+    }
+
+    @media (max-width: 1024px){
+      .cardBtn{width:70px; height:70px}
+      .slot{width:66px; height:54px}
+      .kbtn{height:50px}
+    }
+  </style>
+</head>
+<body>
+<div class="portraitHint">
+  <div class="box">
+    <div class="t">請將裝置轉為橫向</div>
+    <div class="s">這個遊戲是桌面對坐版面（左右分割＋90°相對閱讀）。</div>
+  </div>
+</div>
+
+<div class="app">
+  <div class="topbar">
+    <div class="toprow">
+      <div class="badge">AB×C｜雙人桌面對戰</div>
+
+      <label class="toggle"><input type="checkbox" id="withReplacement"> 放回</label>
+      <label class="toggle"><input type="checkbox" id="allowMulZero"> 乘數=0</label>
+      <label class="toggle"><input type="checkbox" id="allowTensZero"> 十位=0</label>
+      <label class="toggle"><input type="checkbox" id="dynamicMission" checked> 動態任務</label>
+
+      <div class="pill">回合 <strong id="roundNo">1</strong></div>
+      <div class="pill">任務：<strong id="missionText">待揭曉</strong></div>
+      <div class="pill">比分：<strong id="scoreText">0 : 0</strong></div>
+
+      <div class="spacer"></div>
+      <button class="btn ghost" id="btnReset">重新開始</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <section class="player left" id="pA">
+      <div class="rotWrap">
+        <div class="rotContent">
+          <div class="playerHeader">
+            <div class="pname">玩家 A</div>
+            <div class="statusTag" id="aStatus">翻牌中</div>
+          </div>
+
+          <div class="inner">
+            <div class="row cards" id="aCards"></div>
+
+            <div class="formula">
+              <div class="slot" id="aTens" data-p="A" data-slot="tens">?</div>
+              <div class="slot" id="aOnes" data-p="A" data-slot="ones">?</div>
+              <div class="op">×</div>
+              <div class="slot" id="aMul"  data-p="A" data-slot="mul">?</div>
+              <div class="op">=</div>
+              <div class="ans" id="aAns" title="點一下倒退一位；連點兩下清空">—</div>
+              <div class="hint">（先翻牌；點牌填入；點格子清除）</div>
+            </div>
+
+            <div class="keypad" id="aKeypad"></div>
+          </div>
+
+          <div class="panelOverlay" id="aOverlay"><div class="panelPopup" id="aPopup"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="player right" id="pB">
+      <div class="rotWrap">
+        <div class="rotContent">
+          <div class="playerHeader">
+            <div class="pname">玩家 B</div>
+            <div class="statusTag" id="bStatus">翻牌中</div>
+          </div>
+
+          <div class="inner">
+            <div class="row cards" id="bCards"></div>
+
+            <div class="formula">
+              <div class="slot" id="bTens" data-p="B" data-slot="tens">?</div>
+              <div class="slot" id="bOnes" data-p="B" data-slot="ones">?</div>
+              <div class="op">×</div>
+              <div class="slot" id="bMul"  data-p="B" data-slot="mul">?</div>
+              <div class="op">=</div>
+              <div class="ans" id="bAns" title="點一下倒退一位；連點兩下清空">—</div>
+              <div class="hint">（先翻牌；點牌填入；點格子清除）</div>
+            </div>
+
+            <div class="keypad" id="bKeypad"></div>
+          </div>
+
+          <div class="panelOverlay" id="bOverlay"><div class="panelPopup" id="bPopup"></div></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (s)=>document.querySelector(s);
+
+  const els = {
+    withReplacement: $("#withReplacement"),
+    allowMulZero: $("#allowMulZero"),
+    allowTensZero: $("#allowTensZero"),
+    dynamicMission: $("#dynamicMission"),
+    roundNo: $("#roundNo"),
+    missionText: $("#missionText"),
+    scoreText: $("#scoreText"),
+    btnReset: $("#btnReset"),
+
+    pA: $("#pA"),
+    pB: $("#pB"),
+
+    aStatus: $("#aStatus"),
+    bStatus: $("#bStatus"),
+    aCards: $("#aCards"),
+    bCards: $("#bCards"),
+
+    aTens: $("#aTens"),
+    aOnes: $("#aOnes"),
+    aMul: $("#aMul"),
+    bTens: $("#bTens"),
+    bOnes: $("#bOnes"),
+    bMul: $("#bMul"),
+
+    aAns: $("#aAns"),
+    bAns: $("#bAns"),
+
+    aKeypad: $("#aKeypad"),
+    bKeypad: $("#bKeypad"),
+
+    aOverlay: $("#aOverlay"),
+    bOverlay: $("#bOverlay"),
+    aPopup: $("#aPopup"),
+    bPopup: $("#bPopup"),
+  };
+
+  const S = {
+    round: 1,
+    scoreA: 0,
+    scoreB: 0,
+    targetWins: 2,
+    mission: null,           // "BIG" | "SMALL"
+    phase: "FLIP",           // FLIP -> MISSION -> PLAY -> RESOLVED -> GAMEOVER
+    autoTimer: null,
+    autoLeft: 0,
+    cfg: {
+      withReplacement: false,
+      allowMulZero: false,
+      allowTensZero: false,
+      dynamicMission: true,
+    },
+    players: { A: makePlayer("A"), B: makePlayer("B") }
+  };
+
+  // ===== Flip sound (offline) =====
+  let audioCtx = null;
+  function ensureAudio(){
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    if(!audioCtx) audioCtx = new AC();
+    if(audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
+  }
+  function playFlipSound(){
+    ensureAudio();
+    if(!audioCtx) return;
+    const t = audioCtx.currentTime;
+
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = "triangle";
+    o.frequency.setValueAtTime(820, t);
+    o.frequency.exponentialRampToValueAtTime(170, t + 0.10);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.22, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.13);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(t);
+    o.stop(t + 0.14);
+
+    const o2 = audioCtx.createOscillator();
+    const g2 = audioCtx.createGain();
+    o2.type = "square";
+    o2.frequency.setValueAtTime(1200, t);
+    g2.gain.setValueAtTime(0.0001, t);
+    g2.gain.exponentialRampToValueAtTime(0.10, t + 0.006);
+    g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+    o2.connect(g2).connect(audioCtx.destination);
+    o2.start(t);
+    o2.stop(t + 0.04);
+  }
+
+  function makePlayer(id){
+    return {
+      id,
+      digits: [],
+      flipped: [false,false,false],
+      flipDone: false,
+      slots: {tens:null, ones:null, mul:null},
+      ans: "",
+      submitted: false,
+      locked: false,
+      success: null,
+      trueVal: null,
+      userVal: null,
+      expr: null,
+    };
+  }
+
+  // ===== helpers =====
+  function randInt(n){ return Math.floor(Math.random()*n); }
+  function shuffle(a){
+    const x=a.slice();
+    for(let i=x.length-1;i>0;i--){
+      const j=randInt(i+1);
+      [x[i],x[j]]=[x[j],x[i]];
+    }
+    return x;
+  }
+  function draw3(withReplacement){
+    if(withReplacement) return [randInt(10),randInt(10),randInt(10)];
+    const deck = shuffle([0,1,2,3,4,5,6,7,8,9]);
+    return deck.slice(0,3);
+  }
+  function escapeHtml(s){
+    return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+  }
+  function missionWord(m){ return m==="BIG" ? "比大" : "比小"; }
+  function fmtTopMission(m){ return m ? missionWord(m) : "待揭曉"; }
+
+  function setStatus(p, txt, cls){
+    const el = (p==="A") ? els.aStatus : els.bStatus;
+    el.textContent = txt;
+    el.classList.remove("ok","bad");
+    if(cls) el.classList.add(cls);
+  }
+
+  function allOptions(digits){
+    const cfg=S.cfg;
+    const idx=[0,1,2];
+    const opts=[];
+    for(let i=0;i<3;i++){
+      for(let j=0;j<3;j++){
+        if(j===i) continue;
+        const k=idx.find(x=>x!==i && x!==j);
+        const A=digits[i], B=digits[j], C=digits[k];
+        if(!cfg.allowTensZero && A===0) continue;
+        if(!cfg.allowMulZero && C===0) continue;
+        const two=10*A+B;
+        opts.push(two*C);
+      }
+    }
+    return opts;
+  }
+  function minMaxPossible(digits){
+    const opts=allOptions(digits);
+    if(!opts.length) return null;
+    let min=opts[0], max=opts[0];
+    for(const v of opts){ if(v<min) min=v; if(v>max) max=v; }
+    return {min,max};
+  }
+  function decideMissionDynamic(dA,dB){
+    let m = (Math.random()<0.5) ? "BIG" : "SMALL";
+    if(!S.cfg.dynamicMission) return m;
+
+    const mmA=minMaxPossible(dA);
+    const mmB=minMaxPossible(dB);
+    if(!mmA || !mmB) return m;
+
+    const oneSided = (mission) => {
+      if(mission==="BIG"){
+        if(mmA.min > mmB.max) return true;
+        if(mmB.min > mmA.max) return true;
+      }else{
+        if(mmA.max < mmB.min) return true;
+        if(mmB.max < mmA.min) return true;
+      }
+      return false;
+    };
+
+    if(!oneSided(m)) return m;
+    const flip = (m==="BIG") ? "SMALL" : "BIG";
+    if(!oneSided(flip)) return flip;
+    return m;
+  }
+
+  // ===== rotate sizing =====
+  function syncPanelWH(){
+    [els.pA, els.pB].forEach(p=>{
+      const r = p.getBoundingClientRect();
+      p.style.setProperty("--w", r.width + "px");
+      p.style.setProperty("--h", r.height + "px");
+    });
+  }
+  window.addEventListener("resize", syncPanelWH);
+
+  // ===== popups =====
+  function showPanelPopup(p, {title, body, kind="info", okText="知道了", lock=true}){
+    const overlay = (p==="A") ? els.aOverlay : els.bOverlay;
+    const popup = (p==="A") ? els.aPopup : els.bPopup;
+
+    popup.innerHTML = `
+      <h3>${escapeHtml(title)}</h3>
+      ${body}
+      <div class="popActions">
+        <button class="btn ${kind==="ok" ? "ok" : (kind==="bad" ? "danger" : "ghost")}" id="${p}-pop-ok">${escapeHtml(okText)}</button>
+      </div>
+    `;
+    overlay.classList.add("show");
+
+    if(lock){
+      S.players[p].locked = true;
+      renderPlayer(p);
+    }
+
+    popup.querySelector(`#${p}-pop-ok`).addEventListener("click", () => {
+      overlay.classList.remove("show");
+      if(lock){
+        if(!S.players[p].submitted) S.players[p].locked = false;
+        renderPlayer(p);
+      }
+      maybeAdvanceAfterMissionClosed();
+    });
+  }
+  function hidePopup(p){
+    const overlay = (p==="A") ? els.aOverlay : els.bOverlay;
+    overlay.classList.remove("show");
+  }
+  function isPopupOpen(p){
+    const overlay = (p==="A") ? els.aOverlay : els.bOverlay;
+    return overlay.classList.contains("show");
+  }
+  function maybeAdvanceAfterMissionClosed(){
+    if(S.phase!=="MISSION") return;
+    if(!isPopupOpen("A") && !isPopupOpen("B")){
+      S.phase="PLAY";
+      S.players.A.locked = false;
+      S.players.B.locked = false;
+      renderAll();
+    }
+  }
+
+  // ===== UI render =====
+  function isIndexUsed(P, idx){
+    return (P.slots.tens===idx || P.slots.ones===idx || P.slots.mul===idx);
+  }
+  function firstEmptySlot(P){
+    if(P.slots.tens===null) return "tens";
+    if(P.slots.ones===null) return "ones";
+    if(P.slots.mul===null) return "mul";
+    return null;
+  }
+  function setSlotUI(el, idx, P){
+    if(idx===null){ el.textContent="?"; el.classList.remove("filled"); }
+    else{ el.textContent=String(P.digits[idx]); el.classList.add("filled"); }
+  }
+  function renderTop(){
+    els.roundNo.textContent = String(S.round);
+    els.scoreText.textContent = `${S.scoreA} : ${S.scoreB}`;
+    els.missionText.textContent = fmtTopMission(S.mission);
+  }
+
+  function makeCardBtn(p, idx, P){
+    const flipped = P.flipped[idx];
+    const used = isIndexUsed(P, idx);
+
+    const btn = document.createElement("button");
+    btn.className = "cardBtn" + (flipped ? " flipped" : "") + (used ? " used" : "");
+    btn.type = "button";
+
+    const inner = document.createElement("div");
+    inner.className = "card3d";
+
+    const back = document.createElement("div");
+    back.className = "cardFace cardBack";
+    back.textContent = "翻牌";
+
+    const front = document.createElement("div");
+    front.className = "cardFace cardFront";
+    front.textContent = String(P.digits[idx]);
+
+    inner.appendChild(back);
+    inner.appendChild(front);
+    btn.appendChild(inner);
+
+    let disabled = false;
+    if(P.locked || P.submitted) disabled = true;
+
+    if(S.phase==="FLIP"){
+      if(flipped) disabled = true;
+    }else if(S.phase==="PLAY"){
+      if(!flipped) disabled = true;
+      if(used) disabled = true;
+    }else{
+      disabled = true;
+    }
+    if(disabled) btn.classList.add("disabled");
+
+    btn.addEventListener("click", ()=>{
+      ensureAudio();
+      if(btn.classList.contains("disabled") || btn.classList.contains("used")) return;
+
+      if(S.phase==="FLIP" && !P.flipped[idx]){
+        flipCard(p, idx, btn);
+      }else if(S.phase==="PLAY" && P.flipped[idx] && !used){
+        pickDigit(p, idx);
+      }
+    });
+
+    return btn;
+  }
+
+  function renderCards(p){
+    const P=S.players[p];
+    const wrap = (p==="A") ? els.aCards : els.bCards;
+    wrap.innerHTML = "";
+    for(let i=0;i<3;i++) wrap.appendChild(makeCardBtn(p, i, P));
+  }
+
+  function canTypeNow(P){
+    return (S.phase==="PLAY") && !P.locked && !P.submitted && P.flipDone &&
+      (P.slots.tens!==null && P.slots.ones!==null && P.slots.mul!==null);
+  }
+
+  function canSubmit(p){
+    const P=S.players[p];
+    if(S.phase!=="PLAY") return false;
+    if(!P.flipDone || P.locked || P.submitted) return false;
+    const filled = (P.slots.tens!==null && P.slots.ones!==null && P.slots.mul!==null);
+    return filled && P.ans.length>0;
+  }
+
+  function renderKeypad(p){
+    const P=S.players[p];
+    const container = (p==="A") ? els.aKeypad : els.bKeypad;
+    container.innerHTML = "";
+
+    const keys = [
+      {t:"7"},{t:"8"},{t:"9"},
+      {t:"4"},{t:"5"},{t:"6"},
+      {t:"1"},{t:"2"},{t:"3"},
+      {t:"0"},
+      {t:"送出", type:"send", span2:true}
+    ];
+
+    const canType = canTypeNow(P);
+
+    keys.forEach(k=>{
+      const b=document.createElement("button");
+      b.className="kbtn" + (k.type==="send" ? " send" : "") + (k.span2 ? " wide2" : "");
+      b.textContent = k.t;
+      b.disabled = !canType || (k.type==="send" ? !canSubmit(p) : false);
+      b.addEventListener("click", ()=>{
+        if(k.type==="send") return submit(p);
+        onKey(p, k.t);
+      });
+      container.appendChild(b);
+    });
+  }
+
+  function renderPlayer(p){
+    const P=S.players[p];
+
+    if(S.phase==="FLIP"){
+      setStatus(p, P.flipDone ? "等待對方翻牌" : "翻牌中", null);
+    }else if(S.phase==="MISSION"){
+      setStatus(p, "任務揭曉中…", null);
+    }else if(S.phase==="PLAY"){
+      if(P.submitted){
+        setStatus(p, P.success ? "已送出：算對" : "已送出：算錯", P.success ? "ok":"bad");
+      }else{
+        setStatus(p, "作答中", null);
+      }
+    }else if(S.phase==="RESOLVED"){
+      setStatus(p, "本回合結算中", null);
+    }else{
+      setStatus(p, "整局結束", null);
+    }
+
+    renderCards(p);
+
+    const tensEl = (p==="A") ? els.aTens : els.bTens;
+    const onesEl = (p==="A") ? els.aOnes : els.bOnes;
+    const mulEl  = (p==="A") ? els.aMul  : els.bMul;
+    const ansEl  = (p==="A") ? els.aAns  : els.bAns;
+
+    setSlotUI(tensEl, P.slots.tens, P);
+    setSlotUI(onesEl, P.slots.ones, P);
+    setSlotUI(mulEl,  P.slots.mul,  P);
+    ansEl.textContent = P.ans.length ? P.ans : "—";
+
+    renderKeypad(p);
+  }
+
+  function renderAll(){ renderTop(); renderPlayer("A"); renderPlayer("B"); }
+
+  // ===== interactions =====
+  function flipCard(p, idx, btnEl){
+    const P=S.players[p];
+    if(S.phase!=="FLIP" || P.flipped[idx]) return;
+
+    playFlipSound();
+
+    btnEl.classList.add("flipped","disabled");
+
+    setTimeout(()=>{
+      P.flipped[idx]=true;
+      P.flipDone = P.flipped.every(Boolean);
+
+      renderPlayer(p);
+
+      if(S.players.A.flipDone && S.players.B.flipDone){
+        S.mission = decideMissionDynamic(S.players.A.digits, S.players.B.digits);
+        S.phase = "MISSION";
+        S.players.A.locked = true;
+        S.players.B.locked = true;
+        renderAll();
+
+        const body = `<div class="bigWord info">${escapeHtml(missionWord(S.mission))}</div>`;
+        showPanelPopup("A",{title:"本回合任務", body, kind:"info", okText:"開始", lock:true});
+        showPanelPopup("B",{title:"本回合任務", body, kind:"info", okText:"開始", lock:true});
+      }
+    }, 280);
+  }
+
+  function pickDigit(p, idx){
+    const P=S.players[p];
+    if(S.phase!=="PLAY" || P.locked || P.submitted) return;
+    if(!P.flipped[idx] || isIndexUsed(P, idx)) return;
+
+    const slot = firstEmptySlot(P);
+    if(!slot) return;
+
+    const d = P.digits[idx];
+    if(slot==="tens" && !S.cfg.allowTensZero && d===0) return toast(p,"十位不可為 0（可在上方開關）");
+    if(slot==="mul"  && !S.cfg.allowMulZero  && d===0) return toast(p,"乘數不可為 0（可在上方開關）");
+
+    P.slots[slot]=idx;
+    renderPlayer(p);
+  }
+
+  function clearSlot(p, slotName){
+    const P=S.players[p];
+    if(S.phase!=="PLAY" || P.locked || P.submitted) return;
+    P.slots[slotName]=null;
+    renderPlayer(p);
+  }
+
+  [els.aTens,els.aOnes,els.aMul,els.bTens,els.bOnes,els.bMul].forEach(el=>{
+    el.addEventListener("click", ()=> clearSlot(el.dataset.p, el.dataset.slot));
+  });
+
+  function toast(p,msg){
+    const body = `<div class="sub">⚠ ${escapeHtml(msg)}</div>`;
+    showPanelPopup(p,{title:"提示", body, kind:"info", okText:"知道了", lock:false});
+    setTimeout(()=>hidePopup(p), 900);
+  }
+
+  function onKey(p,k){
+    const P=S.players[p];
+    if(!canTypeNow(P)) return;
+    if(!/^\d$/.test(k)) return;
+
+    if(P.ans.length>=4) return;
+    if(P.ans==="0") P.ans="";
+    P.ans += k;
+    renderPlayer(p);
+  }
+
+  function submit(p){
+    const P=S.players[p];
+    if(!canSubmit(p)) return;
+
+    const {tens, ones, mul} = P.slots;
+    const A = P.digits[tens], B = P.digits[ones], C = P.digits[mul];
+    if(!S.cfg.allowTensZero && A===0) return toast(p,"十位不可為 0");
+    if(!S.cfg.allowMulZero  && C===0) return toast(p,"乘數不可為 0");
+
+    const two = 10*A + B;
+    const trueVal = two*C;
+    const userVal = parseInt(P.ans,10);
+
+    P.expr = `${two}×${C}`;
+    P.trueVal = trueVal;
+    P.userVal = Number.isNaN(userVal) ? null : userVal;
+    P.success = (P.userVal === trueVal);
+
+    P.submitted = true;
+    P.locked = true;
+    renderPlayer(p);
+
+    if(S.players.A.submitted && S.players.B.submitted) resolveRound();
+  }
+
+  // ✅✅✅ 修正點：不要把 P 存在閉包，永遠取「當下回合」S.players[p]
+  function attachAnsEdit(p){
+    const ansEl = (p==="A") ? els.aAns : els.bAns;
+    let lastTap = 0;
+
+    ansEl.addEventListener("click", ()=>{
+      const P = S.players[p];            // <— 關鍵：每次都拿最新回合玩家物件
+      const now = Date.now();
+      if(!canTypeNow(P)) return;
+
+      if(now - lastTap < 320){
+        P.ans = "";                      // double => clear
+        lastTap = 0;
+        renderPlayer(p);
+        return;
+      }
+      lastTap = now;
+
+      if(P.ans.length){                  // single => backspace
+        P.ans = P.ans.slice(0,-1);
+        renderPlayer(p);
+      }
+    });
+  }
+
+  function autoNextBody(sec){
+    return `<div class="autoNext">${sec} 秒後自動下一回合…（<span class="autoLeft">${sec}</span>）</div>`;
+  }
+  function startAutoNext(sec){
+    stopAutoNext();
+    S.autoLeft = sec;
+
+    const tick = () => {
+      document.querySelectorAll(".autoLeft").forEach(el=>el.textContent = String(S.autoLeft));
+      if(S.autoLeft<=0){
+        stopAutoNext();
+        hidePopup("A"); hidePopup("B");
+        nextRound();
+        return;
+      }
+      S.autoLeft--;
+    };
+
+    tick();
+    S.autoTimer = setInterval(tick, 1000);
+  }
+  function stopAutoNext(){
+    if(S.autoTimer){
+      clearInterval(S.autoTimer);
+      S.autoTimer = null;
+    }
+  }
+
+  function resolveRound(){
+    S.phase="RESOLVED";
+    const A=S.players.A, B=S.players.B;
+
+    let roundWinner=null;
+    if(A.success && B.success){
+      if(A.trueVal===B.trueVal) roundWinner=null;
+      else if(S.mission==="BIG") roundWinner = (A.trueVal>B.trueVal) ? "A" : "B";
+      else roundWinner = (A.trueVal<B.trueVal) ? "A" : "B";
+    }else if(A.success && !B.success) roundWinner="A";
+    else if(!A.success && B.success) roundWinner="B";
+    else roundWinner=null;
+
+    if(roundWinner==="A") S.scoreA++;
+    if(roundWinner==="B") S.scoreB++;
+
+    renderTop();
+
+    const line = (P, label) => {
+      const base = `${label}：<b>${escapeHtml(P.expr||"—")}</b> = <b>${P.trueVal ?? "—"}</b>`;
+      if(P.success) return `<div class="sub">${base}</div>`;
+      const you = (P.userVal===null) ? "（你未輸入有效數字）" : `（你輸入 ${P.userVal}）`;
+      return `<div class="sub">${base}<br><span style="color:var(--bad); font-weight:1000;">${escapeHtml(you)} → 正確 ${P.trueVal}</span></div>`;
+    };
+    const summaryBody = () => `
+      <div style="margin-top:6px; display:flex; flex-direction:column; gap:8px;">
+        ${line(A,"A")}
+        ${line(B,"B")}
+      </div>
+    `;
+
+    const willGameOver = (S.scoreA>=S.targetWins || S.scoreB>=S.targetWins);
+
+    if(willGameOver){
+      S.phase="GAMEOVER";
+      const champ = (S.scoreA>S.scoreB) ? "A" : "B";
+      const aBig = champ==="A" ? `<div class="bigWord ok">獲勝</div>` : `<div class="bigWord bad">失敗</div>`;
+      const bBig = champ==="B" ? `<div class="bigWord ok">獲勝</div>` : `<div class="bigWord bad">失敗</div>`;
+
+      showPanelPopup("A",{title:"整局結果", body: aBig + summaryBody(), kind: champ==="A"?"ok":"bad", okText:"知道了", lock:false});
+      showPanelPopup("B",{title:"整局結果", body: bBig + summaryBody(), kind: champ==="B"?"ok":"bad", okText:"知道了", lock:false});
+      return;
+    }
+
+    if(roundWinner===null){
+      showPanelPopup("A",{title:"本回合結果", body: `<div class="bigWord info">平手</div>` + summaryBody() + autoNextBody(3), kind:"info", okText:"知道了", lock:false});
+      showPanelPopup("B",{title:"本回合結果", body: `<div class="bigWord info">平手</div>` + summaryBody() + autoNextBody(3), kind:"info", okText:"知道了", lock:false});
+    }else{
+      const win=roundWinner, lose=(win==="A")?"B":"A";
+      showPanelPopup(win,{title:"本回合結果", body: `<div class="bigWord ok">獲勝</div>` + summaryBody() + autoNextBody(3), kind:"ok", okText:"知道了", lock:false});
+      showPanelPopup(lose,{title:"本回合結果", body: `<div class="bigWord bad">失敗</div>` + summaryBody() + autoNextBody(3), kind:"bad", okText:"知道了", lock:false});
+    }
+
+    startAutoNext(3);
+  }
+
+  function nextRound(){ S.round++; startRound(); }
+
+  function startRound(){
+    stopAutoNext();
+    S.mission = null;
+    S.phase = "FLIP";
+
+    S.players.A = makePlayer("A");
+    S.players.B = makePlayer("B");
+
+    S.players.A.digits = draw3(S.cfg.withReplacement);
+    S.players.B.digits = draw3(S.cfg.withReplacement);
+
+    renderAll();
+    syncPanelWH();
+  }
+
+  function resetMatch(){
+    stopAutoNext();
+    S.round = 1;
+    S.scoreA = 0;
+    S.scoreB = 0;
+    startRound();
+  }
+
+  // ===== wire events =====
+  els.btnReset.addEventListener("click", resetMatch);
+
+  function syncCfgAndRestart(){
+    S.cfg.withReplacement = els.withReplacement.checked;
+    S.cfg.allowMulZero = els.allowMulZero.checked;
+    S.cfg.allowTensZero = els.allowTensZero.checked;
+    S.cfg.dynamicMission = els.dynamicMission.checked;
+    startRound();
+  }
+  els.withReplacement.addEventListener("change", syncCfgAndRestart);
+  els.allowMulZero.addEventListener("change", syncCfgAndRestart);
+  els.allowTensZero.addEventListener("change", syncCfgAndRestart);
+  els.dynamicMission.addEventListener("change", syncCfgAndRestart);
+
+  function init(){
+    syncPanelWH();
+    resetMatch();
+    document.addEventListener("pointerdown", ensureAudio, {once:true});
+    attachAnsEdit("A");
+    attachAnsEdit("B");
+  }
+  init();
+})();
+</script>
+</body>
+</html>

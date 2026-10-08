@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>因數 × 倍數 對戰桌遊（0–99）iPad 版 + AI</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Arial; margin: 16px; }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    h1 { margin: 0 0 8px; font-size: 22px; }
+    .bar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin: 10px 0 12px; }
+    .pill { padding: 6px 10px; border: 1px solid #ccc; border-radius: 999px; font-size: 14px; }
+    .pill strong { font-weight: 800; }
+    .btn { padding: 10px 12px; border: 1px solid #333; border-radius: 12px; background: #fff; cursor:pointer; font-size: 15px; }
+    .btn:disabled { opacity: .45; cursor:not-allowed; }
+    .btnSmall{ padding: 8px 12px; border: 1px solid #333; border-radius: 12px; background:#fff; cursor:pointer; font-size:14px; }
+    input[type="number"]{ width: 92px; padding:7px 10px; border-radius:10px; border:1px solid #999; }
+    select{ padding:7px 10px; border-radius:10px; border:1px solid #999; }
+    .note { font-size: 13px; line-height: 1.5; color:#333; margin-top: 10px; }
+
+    /* ===== 棋盤：iPad 友善 ===== */
+    .grid { display:grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: clamp(6px, 1.2vw, 10px); }
+    .cell {
+      user-select:none;
+      padding: clamp(8px, 1.6vw, 12px) 0;
+      text-align:center;
+      border-radius: 12px;
+      border: 1px solid #d0d0d0;
+      cursor: pointer;
+      font-weight: 750;
+      background:#fff;
+    }
+    .cell.disabled { opacity: .30; cursor:not-allowed; }
+    .cell.used { opacity: .35; cursor:not-allowed; text-decoration: line-through; }
+    .cell.legal { outline: 3px solid #000; }
+    .cell.current { border: 3px solid #000; }
+
+    /* ===== 聊天泡泡紀錄 + 卷軸 + 可收合 ===== */
+    .logWrap{ margin-top: 12px; }
+    .log{
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 10px;
+      margin-top: 8px;
+      height: min(24vh, 220px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      background: #fff;
+    }
+    .chat{ display:flex; flex-direction:column; gap:8px; }
+    .msg{ display:flex; gap:8px; align-items:flex-end; }
+    .who{
+      font-size:12px;
+      border:1px solid #999;
+      border-radius:999px;
+      padding:2px 8px;
+      background:#fff;
+      flex:0 0 auto;
+    }
+    .bubble{
+      max-width: 78%;
+      border:1px solid #aaa;
+      border-radius:14px;
+      padding:8px 10px;
+      font-size:14px;
+      line-height:1.4;
+      background:#fff;
+      word-break: break-word;
+    }
+    .from-a{ justify-content:flex-start; }
+    .from-b{ justify-content:flex-end; }
+    .from-b .bubble{ order:0; }
+    .from-b .who{ order:1; }
+    .from-sys{ justify-content:center; }
+    .from-sys .who{ display:none; }
+    .from-sys .bubble{
+      max-width: 92%;
+      text-align:center;
+      border-style:dashed;
+      background:#f6f6f6;
+      border-color:#888;
+      font-weight:700;
+    }
+    .from-sys .bubble::before{ content:"🤖 系統："; font-weight:900; }
+
+    @media (max-width: 1024px) and (orientation: portrait){
+      .log{ height:min(18vh, 160px); }
+    }
+
+    /* ===== 勝利彈出視窗（同款 Modal） ===== */
+    .modalBack{
+      position:fixed; inset:0; background:rgba(0,0,0,.35);
+      display:none; align-items:center; justify-content:center;
+      padding:16px; z-index:9999;
+    }
+    .modalBack.open{display:flex}
+    .modal{
+      width:min(600px, 96vw);
+      background:#fff; border:1px solid #333; border-radius:16px;
+      padding:14px;
+      box-shadow:0 20px 60px rgba(0,0,0,.25);
+    }
+    .modal h4{margin:0 0 8px;font-size:18px}
+    .winReason{
+      font-size:14px;
+      font-weight:900;
+      color:#333;
+      border:1px dashed #777;
+      border-radius:12px;
+      padding:8px 10px;
+      background:#fafafa;
+      margin:6px 0 10px;
+    }
+    .winWinner{
+      font-size:28px;
+      font-weight:1000;
+      line-height:1.2;
+      margin:4px 0 8px;
+    }
+    .winMeta{
+      font-size:16px;
+      font-weight:900;
+      margin:0 0 10px;
+    }
+    .modalBtns{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>因數 × 倍數 對戰桌遊（0–99）｜iPad 友善版 + AI</h1>
+
+    <div class="bar">
+      <div class="pill">狀態：<strong id="status">請先設定起始數字</strong></div>
+      <div class="pill">目前數字：<strong id="current">—</strong></div>
+      <div class="pill">回合：<strong id="turn">—</strong></div>
+    </div>
+
+    <div class="bar">
+      <label class="pill">起始(1–99)：
+        <input id="startN" type="number" min="1" max="99" value="36" />
+      </label>
+
+      <label class="pill">模式：
+        <select id="mode">
+          <option value="pvp" selected>人 vs 人</option>
+          <option value="pve">人(A) vs AI(B)</option>
+        </select>
+      </label>
+
+      <label class="pill">先手：
+        <select id="firstTurn">
+          <option value="A" selected>A 先手</option>
+          <option value="AI">AI(B) 先手</option>
+        </select>
+      </label>
+
+      <label class="pill">AI 難度：
+        <select id="aiLevel">
+          <option value="easy">簡單</option>
+          <option value="normal" selected>普通</option>
+          <option value="smart">聰明</option>
+        </select>
+      </label>
+
+      <button class="btn" id="btnStart">開始</button>
+      <button class="btn" id="btnRestart">重來</button>
+      <button class="btn" id="btnHint">顯示/隱藏合法提示</button>
+    </div>
+
+    <div class="grid" id="grid"></div>
+
+    <div class="note">
+      規則：只能選「前一位數字的倍數或因數」；不可選 0、不可重複、不可選自己。<br>
+      輪到你時沒有任何合法格可點 → 你輸。
+    </div>
+
+    <div class="logWrap">
+      <button id="toggleLog" class="btnSmall">紀錄 ▾</button>
+      <div class="log" id="log">
+        <div class="chat" id="chat"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 勝利視窗（同款） -->
+  <div class="modalBack" id="winModalBack" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="winModalTitle">
+      <h4 id="winModalTitle">遊戲結束</h4>
+      <div class="winReason" id="winReason">結束原因：—</div>
+      <div class="winWinner" id="winWinner">—</div>
+      <div class="winMeta" id="winMeta">—</div>
+      <div class="modalBtns">
+        <button class="btn" id="btnWinAgain">再來一局</button>
+        <button class="btn" id="btnWinClose">關閉</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const MAX = 99;
+
+  const grid = document.getElementById('grid');
+  const statusEl = document.getElementById('status');
+  const currentEl = document.getElementById('current');
+  const turnEl = document.getElementById('turn');
+  const startInput = document.getElementById('startN');
+
+  const modeEl = document.getElementById('mode');
+  const firstTurnEl = document.getElementById('firstTurn');
+  const aiLevelEl = document.getElementById('aiLevel');
+
+  const btnStart = document.getElementById('btnStart');
+  const btnRestart = document.getElementById('btnRestart');
+  const btnHint = document.getElementById('btnHint');
+
+  const toggleLogBtn = document.getElementById('toggleLog');
+  const logBox = document.getElementById('log');
+  const chat = document.getElementById('chat');
+
+  // ===== 勝利視窗 DOM =====
+  const winModalBack = document.getElementById('winModalBack');
+  const winReasonEl = document.getElementById('winReason');
+  const winWinnerEl = document.getElementById('winWinner');
+  const winMetaEl = document.getElementById('winMeta');
+  const btnWinAgain = document.getElementById('btnWinAgain');
+  const btnWinClose = document.getElementById('btnWinClose');
+
+  // ===== 遊戲狀態 =====
+  let started = false;
+  let current = null;
+  let used = new Set();
+  let turn = 0;              // 0:A, 1:B
+  let showHint = true;
+  let gameOver = false;
+
+  // 記住上一局設定，方便「再來一局」
+  let lastStartN = 36;
+  let lastMode = "pvp";
+  let lastFirst = "A";
+  let lastAiLevel = "normal";
+
+  const cells = [];
+
+  function playerName(t){ return t === 0 ? 'A' : 'B'; }
+  function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+  function aiEnabled(){ return modeEl.value === "pve"; }
+
+  // ===== 聊天泡泡紀錄 =====
+  function clearChat(){ chat.innerHTML = ""; }
+
+  function appendMsg(who, text, kind="move"){
+    const row = document.createElement("div");
+    row.className = "msg";
+
+    if (kind === "system") row.classList.add("from-sys");
+    else if (who === "A") row.classList.add("from-a");
+    else row.classList.add("from-b");
+
+    const whoEl = document.createElement("span");
+    whoEl.className = "who";
+    whoEl.textContent = who;
+
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.textContent = text;
+
+    if (kind === "system") whoEl.style.display = "none";
+
+    row.appendChild(whoEl);
+    row.appendChild(bubble);
+    chat.appendChild(row);
+
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  // ===== Modal（勝利視窗）=====
+  function openWinModal(reasonText, winner, loser){
+    winReasonEl.textContent = `結束原因：${reasonText}`;
+    winWinnerEl.textContent = `🏆 勝者：${winner}`;
+    winMetaEl.textContent = `敗者：${loser}`;
+    winModalBack.classList.add("open");
+    winModalBack.setAttribute("aria-hidden","false");
+    btnWinAgain.focus();
+  }
+  function closeWinModal(){
+    winModalBack.classList.remove("open");
+    winModalBack.setAttribute("aria-hidden","true");
+  }
+  btnWinClose.addEventListener("click", closeWinModal);
+  winModalBack.addEventListener("click", (e)=>{ if (e.target === winModalBack) closeWinModal(); });
+  window.addEventListener("keydown", (e)=>{ if (e.key==="Escape" && winModalBack.classList.contains("open")) closeWinModal(); });
+
+  btnWinAgain.addEventListener("click", () => {
+    closeWinModal();
+    // 用上一局設定直接重開
+    modeEl.value = lastMode;
+    syncUi();
+    firstTurnEl.value = lastFirst;
+    aiLevelEl.value = lastAiLevel;
+    startInput.value = String(lastStartN);
+    startGame(lastStartN);
+  });
+
+  // ===== 規則 =====
+  function isLegalMove(from, to){
+    if (!started || gameOver) return false;
+    if (to === 0) return false;        // 禁用 0
+    if (to === from) return false;     // 禁用自己
+    if (used.has(to)) return false;    // 禁用重複
+    return (to % from === 0) || (from % to === 0);
+  }
+
+  function legalMoves(from){
+    const res = [];
+    for (let n = 1; n <= MAX; n++){
+      if (isLegalMove(from, n)) res.push(n);
+    }
+    return res;
+  }
+
+  // ===== 結束處理（改成會彈窗）=====
+  function endGame(reasonText, loserTurn){
+    if (gameOver) return;
+    gameOver = true;
+
+    const loser = playerName(loserTurn);
+    const winner = playerName(1 - loserTurn);
+
+    statusEl.textContent = `無合法步可走：玩家 ${loser} 輸，玩家 ${winner} 勝！`;
+    appendMsg("系統", `無合法步可走：玩家 ${loser} 輸，玩家 ${winner} 勝！`, "system");
+
+    // 彈出勝利視窗（同款）
+    openWinModal(reasonText, winner, loser);
+
+    render(); // 讓棋盤變 disabled
+  }
+
+  function updateStatus(){
+    if (!started){
+      statusEl.textContent = '請先設定起始數字';
+      return;
+    }
+    const moves = legalMoves(current);
+    if (moves.length === 0){
+      endGame("無合法步可走", turn);
+    } else {
+      statusEl.textContent = `可走步數：${moves.length}`;
+    }
+  }
+
+  function render(){
+    currentEl.textContent = started ? String(current) : '—';
+    turnEl.textContent = started ? `玩家 ${playerName(turn)}` : '—';
+
+    for (let n = 0; n <= MAX; n++){
+      const el = cells[n];
+      el.classList.remove('disabled','used','legal','current');
+
+      if (!started){
+        if (n === 0) el.classList.add('disabled');
+      } else {
+        if (n === 0) el.classList.add('disabled');
+        if (used.has(n)) el.classList.add('used');
+        if (n === current) el.classList.add('current');
+        if (!gameOver && showHint && isLegalMove(current, n)) el.classList.add('legal');
+        if (gameOver && n !== current) el.classList.add('disabled');
+      }
+    }
+
+    if (!gameOver) updateStatus();
+  }
+
+  // ===== AI（玩家B） =====
+  function aiPickMove(from){
+    const moves = legalMoves(from);
+    if (moves.length === 0) return null;
+
+    const level = aiLevelEl.value;
+
+    function oppMoveCount(afterMove){
+      used.add(afterMove);
+      const cnt = legalMoves(afterMove).length;
+      used.delete(afterMove);
+      return cnt;
+    }
+
+    function twoPlyScore(move){
+      used.add(move);
+      const oppMoves = legalMoves(move);
+      if (oppMoves.length === 0){
+        used.delete(move);
+        return 1e9; // 直接贏
+      }
+
+      let worstForAI = Infinity;
+      for (const om of oppMoves){
+        used.add(om);
+        const myNext = legalMoves(om).length;
+        used.delete(om);
+        if (myNext < worstForAI) worstForAI = myNext;
+      }
+      used.delete(move);
+
+      return (worstForAI * 1000) - (oppMoves.length * 10);
+    }
+
+    for (const m of moves){
+      if (oppMoveCount(m) === 0) return m;
+    }
+
+    if (level === "easy"){
+      return moves[Math.floor(Math.random() * moves.length)];
+    }
+
+    if (level === "normal"){
+      let best = [];
+      let bestVal = Infinity;
+      for (const m of moves){
+        const v = oppMoveCount(m);
+        if (v < bestVal){ bestVal = v; best = [m]; }
+        else if (v === bestVal){ best.push(m); }
+      }
+      return best[Math.floor(Math.random() * best.length)];
+    }
+
+    let bestMove = moves[0];
+    let bestScore = -Infinity;
+    for (const m of moves){
+      const s = twoPlyScore(m);
+      if (s > bestScore){
+        bestScore = s;
+        bestMove = m;
+      }
+    }
+    return bestMove;
+  }
+
+  async function maybeAiTurn(){
+    if (!started || gameOver) return;
+    if (!aiEnabled()) return;
+    if (turn !== 1) return;
+
+    statusEl.textContent = "AI 思考中…";
+    await sleep(450);
+
+    const pick = aiPickMove(current);
+    if (pick == null){
+      // AI 無法走：直接判定 AI 輸
+      endGame("AI 無合法步可走", 1);
+      return;
+    }
+
+    appendMsg("B", `（AI）${current} → ${pick}`);
+    current = pick;
+    used.add(pick);
+    turn = 0;
+    render();
+  }
+
+  // ===== 人類走子 =====
+  function humanMove(to){
+    if (!started || gameOver) return;
+    if (aiEnabled() && turn === 1) return; // AI 回合禁點
+    if (!isLegalMove(current, to)) return;
+
+    const from = current;
+    const who = playerName(turn);
+
+    current = to;
+    used.add(to);
+    appendMsg(who, `${from} → ${to}`);
+
+    turn = 1 - turn;
+    render();
+    maybeAiTurn();
+  }
+
+  // ===== 開始 / 重來 =====
+  function startGame(n){
+    closeWinModal();
+
+    n = Number(n);
+    if (!Number.isInteger(n) || n < 1 || n > MAX){
+      alert('起始數字請輸入 1–99');
+      return;
+    }
+
+    // 記錄本局設定（給再來一局用）
+    lastStartN = n;
+    lastMode = modeEl.value;
+    lastFirst = firstTurnEl.value;
+    lastAiLevel = aiLevelEl.value;
+
+    started = true;
+    gameOver = false;
+    current = n;
+    used = new Set([n]);
+
+    // 先手：AI 模式才生效
+    if (aiEnabled() && firstTurnEl.value === "AI") turn = 1;
+    else turn = 0;
+
+    clearChat();
+    appendMsg("系統",
+      `遊戲開始！起始數字：${n}｜模式：${aiEnabled() ? "A vs AI(B)" : "人 vs 人"}｜先手：${turn === 0 ? "A" : "AI(B)"}`,
+      "system"
+    );
+
+    render();
+    maybeAiTurn(); // 若 AI 先手，立刻出手
+  }
+
+  function restart(){
+    closeWinModal();
+    started = false;
+    gameOver = false;
+    current = null;
+    used = new Set();
+    turn = 0;
+    clearChat();
+    render();
+  }
+
+  // ===== 建立棋盤 0–99 =====
+  for (let n = 0; n <= MAX; n++){
+    const el = document.createElement('div');
+    el.className = 'cell';
+    el.textContent = String(n);
+
+    el.addEventListener('click', () => {
+      if (!started){
+        if (n === 0) return;
+        startGame(n);
+        return;
+      }
+      if (gameOver) return;
+      if (n === 0) return;
+
+      if (isLegalMove(current, n)){
+        humanMove(n);
+      } else {
+        alert(`不合法：必須選「${current}」的因數或倍數，且不能重複/不能選自己/不能選 0。`);
+      }
+    });
+
+    cells[n] = el;
+    grid.appendChild(el);
+  }
+
+  // ===== 控制按鈕 =====
+  btnStart.addEventListener('click', () => startGame(startInput.value));
+  btnRestart.addEventListener('click', restart);
+  btnHint.addEventListener('click', () => { showHint = !showHint; render(); });
+
+  // 模式切換：非 AI 模式時停用先手/難度
+  function syncUi(){
+    const on = aiEnabled();
+    firstTurnEl.disabled = !on;
+    aiLevelEl.disabled = !on;
+  }
+  modeEl.addEventListener('change', () => {
+    syncUi();
+    if (started && !gameOver){
+      appendMsg("系統", `已切換模式：${aiEnabled() ? "A vs AI(B)" : "人 vs 人"}（建議按「重來」）`, "system");
+    }
+  });
+  syncUi();
+
+  // ===== 紀錄抽屜（iPad 直向預設收合） =====
+  let logOpen = true;
+  function setLogOpen(open){
+    logOpen = open;
+    logBox.style.display = logOpen ? "block" : "none";
+    toggleLogBtn.textContent = logOpen ? "紀錄 ▾" : "紀錄 ▸";
+  }
+  toggleLogBtn.addEventListener("click", () => setLogOpen(!logOpen));
+
+  const isPortraitIpadLike = window.matchMedia("(max-width: 1024px) and (orientation: portrait)").matches;
+  if (isPortraitIpadLike) setLogOpen(false);
+
+  render();
+})();
+</script>
+</body>
+</html>

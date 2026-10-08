@@ -1,0 +1,1586 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>乘積佔地戰 6×6（不重複）｜2–4人｜iPad 版</title>
+  <style>
+    body{font-family:system-ui,-apple-system,"Segoe UI",Arial;margin:16px}
+    .wrap{max-width:1100px;margin:0 auto}
+    h1{margin:0 0 8px;font-size:22px}
+    .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0 12px}
+    .pill{padding:6px 10px;border:1px solid #ccc;border-radius:999px;font-size:14px;background:#fff}
+    .pill strong{font-weight:900}
+    select,input{padding:7px 10px;border-radius:10px;border:1px solid #999}
+    button{padding:10px 12px;border-radius:12px;border:1px solid #333;background:#fff;font-size:15px;cursor:pointer}
+    button:disabled{opacity:.45;cursor:not-allowed}
+
+    .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
+    .left{flex:1 1 520px}
+    .right{flex:1 1 360px}
+
+    /* 棋盤 6×6 */
+    .grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:clamp(6px,1.2vw,10px)}
+    .cell{
+      user-select:none;
+      padding:clamp(10px,2.0vw,16px) 0;
+      text-align:center;
+      border-radius:14px;
+      border:1px solid #d0d0d0;
+      background:#fff;
+      font-weight:900;
+      font-size:clamp(14px,2.2vw,18px);
+      cursor:pointer;
+      position:relative;
+    }
+    .cell:hover{outline:2px solid #000}
+    .cell.claimed{cursor:not-allowed; opacity:.92}
+    .cell.claimed:hover{outline:none}
+    .cell .tag{
+      position:absolute; inset:auto 6px 6px auto;
+      font-size:11px; border:1px solid #000; border-radius:999px;
+      padding:1px 6px; background:#fff;
+    }
+
+    /* 玩家佔領樣式 */
+    .p1{background:#eef6ff}
+    .p2{background:#fff3e8}
+    .p3{background:#f2fff0}
+    .p4{background:#f7f0ff}
+
+    .panel{border:1px solid #ddd;border-radius:14px;padding:12px;background:#fff}
+    .panel h3{margin:0 0 10px;font-size:16px}
+    .note{font-size:13px;line-height:1.55;color:#333;margin-top:8px}
+    .hintLine{margin-top:8px;font-size:14px;font-weight:900}
+    .warn{font-weight:900}
+
+    /* 骰子 */
+    .diceRow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .diceArea{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0}
+    .die{
+      width:54px;height:54px;border-radius:14px;border:1px solid #333;
+      display:flex;align-items:center;justify-content:center;
+      font-size:22px;font-weight:900;background:#fff;cursor:pointer;
+      user-select:none;
+    }
+    .die.sel{outline:4px solid #000}
+    .die.dis{opacity:.35;cursor:not-allowed}
+    .diceBtns{display:flex;flex-direction:column;gap:8px}
+
+    /* 記錄抽屜 */
+    .logWrap{margin-top:12px}
+    .btnSmall{padding:8px 12px;border-radius:12px;border:1px solid #333;background:#fff;font-size:14px}
+    .log{
+      border:1px solid #ddd;border-radius:12px;padding:10px;margin-top:8px;
+      height:min(24vh,220px);overflow-y:auto;-webkit-overflow-scrolling:touch;background:#fff;
+    }
+    .chat{display:flex;flex-direction:column;gap:8px}
+    .msg{display:flex;gap:8px;align-items:flex-end}
+    .who{font-size:12px;border:1px solid #999;border-radius:999px;padding:2px 8px;background:#fff;flex:0 0 auto}
+    .bubble{max-width:78%;border:1px solid #aaa;border-radius:14px;padding:8px 10px;font-size:14px;line-height:1.4;background:#fff;word-break:break-word}
+    .from-a{justify-content:flex-start}
+    .from-b{justify-content:flex-end}
+    .from-b .bubble{order:0}
+    .from-b .who{order:1}
+    .from-sys{justify-content:center}
+    .from-sys .who{display:none}
+    .from-sys .bubble{max-width:92%;text-align:center;border-style:dashed;background:#f6f6f6;border-color:#888;font-weight:800}
+    .from-sys .bubble::before{content:"🤖 系統：";font-weight:900}
+
+    /* ===== 關主設定：可收折區塊 ===== */
+    .hostWrap{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+    .hostToggle{
+      white-space:nowrap;
+      padding:10px 12px;border-radius:12px;border:1px solid #333;background:#fff;font-size:15px;
+    }
+    .hostBox{
+      border:1px solid #ddd;border-radius:14px;padding:10px 12px;background:#fff;
+      display:none;
+      flex-wrap:wrap;gap:10px;align-items:center;
+    }
+    .hostBox.open{display:flex}
+    .hostTitle{
+      font-weight:900;border:1px solid #333;border-radius:999px;padding:4px 10px;background:#fff;
+      white-space:nowrap;
+    }
+    .hostItem{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .hostItem label{display:flex;gap:8px;align-items:center}
+    .hostItem input[type="number"]{width:92px}
+    .mini{font-size:12px;color:#333;line-height:1.4}
+
+    .aiGroup{
+      display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap;
+      padding:8px 10px; border:1px dashed #777; border-radius:12px; background:#fafafa;
+    }
+    .aiBadge{font-weight:900}
+    .aiDisabled{opacity:.45}
+    .aiTag{
+      font-size:12px;border:1px solid #999;border-radius:999px;padding:2px 8px;background:#fff
+    }
+    .aiRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .aiRow select{padding:6px 10px;border-radius:999px}
+
+    @media (max-width: 1024px) and (orientation: portrait){
+      .log{height:min(18vh,160px)}
+    }
+
+    /* ===== 共用 Modal（Pass / Win） ===== */
+    .modalBack{
+      position:fixed; inset:0; background:rgba(0,0,0,.35);
+      display:none; align-items:center; justify-content:center;
+      padding:16px; z-index:9999;
+    }
+    .modalBack.open{display:flex}
+    .modal{
+      width:min(600px, 96vw);
+      background:#fff; border:1px solid #333; border-radius:16px;
+      padding:14px;
+      box-shadow:0 20px 60px rgba(0,0,0,.25);
+    }
+    .modal h4{margin:0 0 8px;font-size:18px}
+    .modal p{margin:0 0 12px;line-height:1.5}
+    .modalBtns{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+
+    /* ===== 比分（只用🏆，不粗框）===== */
+    .scoreLine{display:flex;align-items:center;gap:8px}
+    .cup{font-size:16px}
+
+    /* ===== 勝利視窗樣式：勝者加大字 + 原因 ===== */
+    .winReason{
+      font-size:14px;
+      font-weight:900;
+      color:#333;
+      border:1px dashed #777;
+      border-radius:12px;
+      padding:8px 10px;
+      background:#fafafa;
+      margin:6px 0 10px;
+    }
+    .winWinner{
+      font-size:28px;
+      font-weight:1000;
+      line-height:1.2;
+      margin:4px 0 8px;
+    }
+    .winMeta{
+      font-size:16px;
+      font-weight:900;
+      margin:0 0 10px;
+    }
+    .rankBox{
+      border:1px solid #ddd;
+      border-radius:12px;
+      padding:10px;
+      background:#fff;
+    }
+    .rankTitle{
+      font-weight:1000;
+      margin:0 0 8px;
+    }
+    .rankRow{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding:6px 8px;
+      border-radius:10px;
+      border:1px solid #eee;
+      margin:6px 0;
+      font-weight:900;
+    }
+    .rankLeft{display:flex;align-items:center;gap:8px}
+    .rankBadge{
+      font-size:12px;
+      border:1px solid #999;
+      border-radius:999px;
+      padding:2px 8px;
+      background:#fff;
+      font-weight:900;
+      white-space:nowrap;
+    }
+  
+    /* ===== 教學 DEMO（v1.0） ===== */
+    body.demoLock .wrap{ pointer-events:none; user-select:none; }
+    body.demoLock #demoOverlay{ pointer-events:auto; user-select:auto; }
+
+    #demoOverlay{
+      position:fixed; inset:0;
+      display:none;
+      z-index:10000;
+      background:rgba(0,0,0,.55);
+      align-items:center; justify-content:center;
+      padding:16px;
+    }
+    #demoOverlay.open{ display:flex; }
+
+    .demoCard{
+      width:min(720px, 96vw);
+      background:#fff;
+      border:1px solid #333;
+      border-radius:16px;
+      padding:14px;
+      box-shadow:0 20px 60px rgba(0,0,0,.25);
+      position:relative;
+      z-index:10002;
+    }
+    .demoTitle{ margin:0; font-size:18px; font-weight:1000; }
+    .demoText{ margin:8px 0 12px; line-height:1.6; font-size:15px; }
+
+    .demoBtns{ display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; }
+    .demoBtns button{ padding:10px 12px;border-radius:12px;border:1px solid #333;background:#fff;font-size:15px;cursor:pointer }
+
+    /* 高亮框（spotlight） */
+    .demoSpot{
+      position:fixed;
+      border-radius:16px;
+      outline:4px solid #ffd500;
+      z-index:10001;
+      pointer-events:none;
+      display:none;
+    }
+    .demoSpot.pulse{ animation: demoPulse 1.15s ease-in-out infinite; }
+    @keyframes demoPulse{
+      0%{ transform:scale(1); }
+      50%{ transform:scale(1.02); }
+      100%{ transform:scale(1); }
+    }
+
+    /* 小示範骰（放在教學卡片裡，不改正式骰子） */
+    .demoDiceRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:8px 0 0; }
+    .demoDie{
+      width:54px;height:54px;border-radius:14px;border:1px solid #333;
+      display:flex;align-items:center;justify-content:center;
+      font-size:22px;font-weight:900;background:#fff;
+    }
+    .demoDie.sel{ outline:4px solid #000; }
+
+    .demoFoot{
+      display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+      margin-top:10px;
+    }
+    .demoFoot label{ display:flex; gap:8px; align-items:center; font-size:13px; }
+
+  
+    /* Demo：連線加分範例（只在教學顯示，不影響正式遊戲） */
+    .demoOwnCell{
+      outline:4px solid #1f7a3a !important;
+      background:#e9fff0 !important;
+    }
+    .demoNewCell{
+      outline:4px solid #111 !important;
+      background:#fff3bf !important;
+    }
+
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎲 乘積佔地戰 6×6（不重複）｜2–4 人｜玩家心算版 v4.5</h1>
+
+  <div class="bar">
+    <div class="pill">狀態：<strong id="status">尚未開始</strong></div>
+    <div class="pill">回合玩家：<strong id="turn">—</strong></div>
+    <div class="pill">剩餘格數：<strong id="remain">36</strong></div>
+    <div class="pill">總時間：<strong id="totalTimer">—</strong></div>
+    <div class="pill">回合時間：<strong id="turnTimer">—</strong></div>
+  </div>
+
+  <div class="bar hostWrap">
+    <div class="pill">玩家：<strong id="playerCountText">3人</strong></div>
+
+    <button id="btnNew">開始 / 重來</button>
+
+    <div style="flex:1 1 auto"></div>
+
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button id="btnDemo" class="btnSmall" style="padding:10px 12px">📘 DEMO 教學</button>
+      <button id="btnHost" class="btnSmall" style="padding:10px 12px;border-style:dashed">⚙️ 關主設定</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="left">
+      <div class="panel">
+        <h3>棋盤（點格子來佔領）</h3>
+        <div class="grid" id="grid"></div>
+        <div class="note">
+          流程：按「擲骰」→ 選兩顆骰（系統不顯示乘積）→ 你心算後點一格。<br>
+          <span class="warn">點錯 / 點到已佔領格：本回合 0 分換人。</span><br>
+          連線加倍：新佔格若與自己領地上下左右相鄰 → 該格得 2 分（×2，最多一次）。<br>
+          <span class="warn">⏭ Pass：任何時候都可放棄本回合（0 分換人）。</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="panel">
+        <h3>骰子（玩家自行心算）</h3>
+
+        <div class="diceRow">
+          <div class="diceArea" id="diceArea">
+            <div class="die dis" id="d0">—</div>
+            <div class="die dis" id="d1">—</div>
+            <div class="die dis" id="d2">—</div>
+          </div>
+
+          <div class="diceBtns">
+            <button id="btnRoll" disabled>擲骰</button>
+            <button id="btnEndTurn" disabled>⏭ Pass</button>
+          </div>
+        </div>
+
+        <div class="hintLine" id="hint">請先開始遊戲。</div>
+
+        <div style="margin-top:12px">
+          <h3 style="margin:0 0 8px;font-size:16px">比分</h3>
+          <div id="scoreBox"></div>
+        </div>
+
+        <div class="logWrap">
+          <button id="toggleLog" class="btnSmall">紀錄 ▾</button>
+          <div class="log" id="log">
+            <div class="chat" id="chat"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Pass 二次確認 Modal -->
+<div class="modalBack" id="passModalBack" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="passTitle">
+    <h4 id="passTitle">確認放棄本回合？</h4>
+    <p id="passDesc">你將以 <b>0 分</b> 結束本回合並換下一位。</p>
+    <div class="modalBtns">
+      <button id="btnPassCancel">取消</button>
+      <button id="btnPassConfirm">確認 ⏭ Pass</button>
+    </div>
+  </div>
+</div>
+
+<!-- 勝利視窗（顯示原因＋再來一局） -->
+<div class="modalBack" id="winModalBack" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="winModalTitle">
+    <h4 id="winModalTitle">遊戲結束</h4>
+
+    <div class="winReason" id="winReason">結束原因：—</div>
+
+    <div class="winWinner" id="winWinner">—</div>
+    <div class="winMeta" id="winMeta">—</div>
+
+    <div class="rankBox" id="rankBox">
+      <div class="rankTitle">各玩家分數排行榜</div>
+      <div id="rankList"></div>
+    </div>
+
+    <div class="modalBtns" style="margin-top:12px">
+      <button id="btnWinAgain">再來一局</button>
+      <button id="btnWinClose">關閉</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== 教學 DEMO（v1.0） ===== -->
+<div id="demoOverlay" aria-hidden="true">
+  <div class="demoCard" id="demoCard" role="dialog" aria-modal="true" aria-labelledby="demoH">
+    <h2 class="demoTitle" id="demoH">教學</h2>
+
+    <div class="demoText" id="demoP">—</div>
+
+    <div class="demoDiceRow" id="demoDiceRow" style="display:none">
+      <div class="demoDie" id="demoDie0">—</div>
+      <div class="demoDie" id="demoDie1">—</div>
+      <div class="demoDie" id="demoDie2">—</div>
+      <div style="font-weight:900">（選兩顆來相乘）</div>
+    </div>
+
+    <div class="demoFoot">
+      <label><input type="checkbox" id="demoDontShow"/> 下次不要再顯示</label>
+      <div class="demoBtns">
+        <button id="demoSkip">略過</button>
+        <button id="demoNext">下一步</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="demoSpot" id="demoSpot"></div>
+
+<!-- 關主設定 -->
+<div class="modalBack" id="hostBack" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="hostTitle">
+    <h4 id="hostTitle">⚙️ 關主設定</h4>
+
+    <div class="pill" style="margin:10px 0">玩家數：
+      <select id="playerCount">
+        <option value="2">2</option>
+        <option value="3" selected>3</option>
+        <option value="4">4</option>
+      </select>
+    </div>
+
+    <div class="pill" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0">
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="toggleTotal" /> 限制總時間</label>
+      <span class="mini">分鐘</span>
+      <input type="number" id="totalMin" min="1" max="180" value="10" style="width:92px" />
+      <span class="mini">到時結算</span>
+    </div>
+
+    <div class="pill" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0">
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="toggleTurn" /> 限制回合</label>
+      <span class="mini">秒</span>
+      <input type="number" id="turnSec" min="5" max="300" value="30" style="width:92px" />
+      <span class="mini">到時換人</span>
+    </div>
+
+    <div class="pill" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0">
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="toggleLockPick" checked /> 鎖定擲骰</label>
+      <span class="mini">未選兩顆骰不可點棋盤</span>
+    </div>
+
+    <div class="aiGroup" id="aiGroup" style="margin:10px 0">
+      <div class="aiBadge">🤖 電腦玩家（各自難度）</div>
+
+      <div class="aiRow">
+        <label class="aiTag"><input type="checkbox" id="aiP2" /> P2</label>
+        <span class="aiTag">難度：
+          <select id="aiLevelP2">
+            <option value="random">1. 隨機</option>
+            <option value="connect" selected>2. 盡量找連接</option>
+            <option value="block">3. 連接＋阻擋（兇）</option>
+          </select>
+        </span>
+      </div>
+
+      <div class="aiRow">
+        <label class="aiTag"><input type="checkbox" id="aiP3" /> P3</label>
+        <span class="aiTag">難度：
+          <select id="aiLevelP3">
+            <option value="random">1. 隨機</option>
+            <option value="connect" selected>2. 盡量找連接</option>
+            <option value="block">3. 連接＋阻擋（兇）</option>
+          </select>
+        </span>
+      </div>
+
+      <div class="aiRow">
+        <label class="aiTag"><input type="checkbox" id="aiP4" /> P4</label>
+        <span class="aiTag">難度：
+          <select id="aiLevelP4">
+            <option value="random">1. 隨機</option>
+            <option value="connect" selected>2. 盡量找連接</option>
+            <option value="block">3. 連接＋阻擋（兇）</option>
+          </select>
+        </span>
+      </div>
+
+      <div class="mini">P1 固定真人（AI 勾選/難度變更：遊戲中會提示「下局生效」）</div>
+    </div>
+
+    <div class="mini" id="hostNote" style="line-height:1.6;opacity:.85;margin:10px 0">
+      套用設定後會回到「尚未開始」狀態（本局分數會清空）。
+    </div>
+
+    <div class="modalBtns">
+      <button id="btnHostClose">關閉</button>
+      <button id="btnHostApply">套用</button>
+    </div>
+  </div>
+</div>
+
+
+
+<script>
+(() => {
+  const UNIQUE_PRODUCTS = [
+    1,2,3,4,5,6,7,8,9,10,12,14,15,16,18,20,21,24,
+    25,27,28,30,32,35,36,40,42,45,48,49,54,56,63,64,72,81
+  ];
+
+  // ===== DOM =====
+  const gridEl = document.getElementById('grid');
+  const statusEl = document.getElementById('status');
+  const turnEl = document.getElementById('turn');
+  const remainEl = document.getElementById('remain');
+  const hintEl = document.getElementById('hint');
+
+  const totalTimerEl = document.getElementById('totalTimer');
+  const turnTimerEl  = document.getElementById('turnTimer');
+
+  const playerCountEl = document.getElementById('playerCount');
+  const btnNew = document.getElementById('btnNew');
+  const btnRoll = document.getElementById('btnRoll');
+  const btnEndTurn = document.getElementById('btnEndTurn');
+
+  const diceEls = [document.getElementById('d0'), document.getElementById('d1'), document.getElementById('d2')];
+  const scoreBox = document.getElementById('scoreBox');
+
+  const toggleLogBtn = document.getElementById('toggleLog');
+  const logBox = document.getElementById('log');
+  const chat = document.getElementById('chat');
+
+  // Host controls
+  const btnHost = document.getElementById('btnHost');
+  const hostBack = document.getElementById('hostBack');
+  const btnHostClose = document.getElementById('btnHostClose');
+  const btnHostApply = document.getElementById('btnHostApply');
+  const playerCountTextEl = document.getElementById('playerCountText');
+
+  const toggleTotal = document.getElementById('toggleTotal');
+  const totalMinEl  = document.getElementById('totalMin');
+  const toggleTurn  = document.getElementById('toggleTurn');
+  const turnSecEl   = document.getElementById('turnSec');
+  const toggleLockPick = document.getElementById('toggleLockPick');
+
+  const aiGroup = document.getElementById('aiGroup');
+  const aiP2 = document.getElementById('aiP2');
+  const aiP3 = document.getElementById('aiP3');
+  const aiP4 = document.getElementById('aiP4');
+  const aiLevelP2 = document.getElementById('aiLevelP2');
+  const aiLevelP3 = document.getElementById('aiLevelP3');
+  const aiLevelP4 = document.getElementById('aiLevelP4');
+
+  // Pass modal
+  const passModalBack = document.getElementById('passModalBack');
+  const btnPassCancel = document.getElementById('btnPassCancel');
+  const btnPassConfirm = document.getElementById('btnPassConfirm');
+  const passDesc = document.getElementById('passDesc');
+
+  // Win modal
+  const winModalBack = document.getElementById('winModalBack');
+  const btnWinClose  = document.getElementById('btnWinClose');
+  const btnWinAgain  = document.getElementById('btnWinAgain');
+  const winReasonEl  = document.getElementById('winReason');
+  const winWinnerEl  = document.getElementById('winWinner');
+  const winMetaEl    = document.getElementById('winMeta');
+  const rankListEl   = document.getElementById('rankList');
+
+  // ===== 教學 DEMO（v1.0）：(1) Demo期間禁止操作 (2) 自動演示擲骰/選骰/落點 (3) 小學生版文字 =====
+  const btnDemo = document.getElementById("btnDemo");
+
+  const demoOverlay = document.getElementById("demoOverlay");
+  const demoSpot = document.getElementById("demoSpot");
+  const demoCard = document.getElementById("demoCard");
+  const demoH = document.getElementById("demoH");
+  const demoP = document.getElementById("demoP");
+  const demoNext = document.getElementById("demoNext");
+  const demoSkip = document.getElementById("demoSkip");
+  const demoDontShow = document.getElementById("demoDontShow");
+
+  const demoDiceRow = document.getElementById("demoDiceRow");
+  const demoDie0 = document.getElementById("demoDie0");
+  const demoDie1 = document.getElementById("demoDie1");
+  const demoDie2 = document.getElementById("demoDie2");
+
+  let demoOn = false;
+  let demoStep = 0;
+
+  let demoDice = [2,6,9];
+  let demoSel = [0,1];
+  let demoTargetIdx = 0;
+
+  function setDemo(open){
+    demoOn = open;
+    document.body.classList.toggle("demoLock", open);
+    demoOverlay.classList.toggle("open", open);
+    demoOverlay.setAttribute("aria-hidden", open ? "false" : "true");
+    if (!open){
+      hideSpot();
+      hideDemoDice();
+    }
+  }
+
+  function showSpotFor(sel, pulse=true){
+    const el = document.querySelector(sel);
+    if (!el){ hideSpot(); return null; }
+
+    // 先捲到畫面中間，再取一次位置（避免位置計算偏掉）
+    try{ el.scrollIntoView({behavior:"smooth", block:"center", inline:"nearest"}); }catch(_){}
+
+    const r = el.getBoundingClientRect();
+    demoSpot.style.display = "block";
+    demoSpot.style.left = (r.left - 6) + "px";
+    demoSpot.style.top = (r.top - 6) + "px";
+    demoSpot.style.width = (r.width + 12) + "px";
+    demoSpot.style.height = (r.height + 12) + "px";
+    demoSpot.classList.toggle("pulse", !!pulse);
+    return r;
+  }
+  function hideSpot(){
+    demoSpot.style.display = "none";
+    demoSpot.classList.remove("pulse");
+  }
+
+  function showDemoDice(){
+    demoDiceRow.style.display = "flex";
+    demoDie0.textContent = String(demoDice[0]);
+    demoDie1.textContent = String(demoDice[1]);
+    demoDie2.textContent = String(demoDice[2]);
+    [demoDie0,demoDie1,demoDie2].forEach((d,i)=> d.classList.toggle("sel", demoSel.includes(i)));
+  }
+  function hideDemoDice(){
+    demoDiceRow.style.display = "none";
+    [demoDie0,demoDie1,demoDie2].forEach(d=> d.classList.remove("sel"));
+  }
+  function clearConnectExample(){
+    const cells = gridEl.querySelectorAll(".cell");
+    cells.forEach(c => c.classList.remove("demoOwnCell","demoNewCell"));
+  }
+  function applyConnectExample(){
+    // 找一組相鄰格子做示範：左格=已佔領，右格=新佔領（上下左右相連 → +2）
+    const cells = gridEl.querySelectorAll(".cell");
+    if (cells.length < 2) return;
+    clearConnectExample();
+
+    // 優先找同一列相鄰的兩格（0 和 1 通常就可以）
+    const a = 0, b = 1;
+    cells[a].classList.add("demoOwnCell");
+    cells[b].classList.add("demoNewCell");
+  }
+
+
+  function pickDemoScenario(){
+    // 從目前棋盤挑一個「可以用 1..9 相乘出來」的格子
+    for (let i=0;i<36;i++){
+      const n = board[i];
+      for (let a=1;a<=9;a++){
+        if (n % a !== 0) continue;
+        const b = n / a;
+        if (b>=1 && b<=9){
+          demoDice = [a, b, (a===9?8:9)];
+          demoSel = [0,1];
+          demoTargetIdx = i;
+          return;
+        }
+      }
+    }
+    demoDice = [2,6,9];
+    demoSel = [0,1];
+    demoTargetIdx = 0;
+  }
+
+  const demoSteps = [
+    { t:"歡迎來到《乘積佔地戰》", p:"目標：用心算乘法，點對就佔領格子、拿分數！", spot:null, dice:false },
+    { t:"你會看到這些資訊", p:"上面會顯示：目前輪到誰、剩幾格、計時（如果關主有開）。", spot:".bar", dice:false },
+    { t:"這是棋盤", p:"每一格是一個乘積。等一下心算完，就要點到對的數字！", spot:"#grid", dice:false },
+    { t:"擲骰（示範）", p:"每回合會出現 3 顆骰子。玩家要從裡面選 2 顆來相乘。", spot:"#diceArea", dice:true },
+    { t:"選兩顆骰（示範）", p:"示範：先選這兩顆。系統不會直接告訴你答案，要自己算。", spot:"#diceArea", dice:true },
+    { t:"心算 → 找到答案格（示範）", p:"把兩顆骰子相乘，找到棋盤上相同的數字。", spot:"#grid", dice:true, target:true },
+    { t:"連線會加分", p:"看棋盤上的範例：綠色=你已佔領，黃色=你新佔領。因為上下左右相連，所以這格得 2 分！", spot:"#grid", dice:false },
+    { t:"點錯 / 放棄（Pass）", p:"點錯或放棄本回合會是 0 分，直接換下一位。", spot:"#btnEndTurn", dice:false },
+    { t:"完成 🎉", p:"教學結束！你可以按「開始 / 重來」或按一次「📘 DEMO 教學」再看一遍。", spot:"#btnNew", dice:false, finish:true }
+  ];
+
+  function renderDemo(){
+    const s = demoSteps[demoStep];
+    demoH.textContent = s.t;
+
+    if (demoStep === 3){
+      pickDemoScenario();
+      showDemoDice();
+      demoP.textContent = s.p + `（示範骰：${demoDice[0]}、${demoDice[1]}、${demoDice[2]}）`;
+    } else if (demoStep === 4){
+      pickDemoScenario();
+      showDemoDice();
+      demoP.textContent = s.p + `（示範：選 ${demoDice[0]} 和 ${demoDice[1]}）`;
+    } else if (demoStep === 5){
+      pickDemoScenario();
+      showDemoDice();
+      const product = demoDice[0] * demoDice[1];
+      demoP.textContent = s.p + `（示範：${demoDice[0]}×${demoDice[1]}＝${product}，所以要點 ${product}）`;
+    } else {
+      if (s.dice) showDemoDice(); else hideDemoDice();
+      demoP.textContent = s.p;
+    }
+
+    let spotRect = null;
+    if (s.spot) spotRect = showSpotFor(s.spot, true);
+    else hideSpot();
+
+
+    // Demo 範例：預設清除，只有「連線會加分」那一步才顯示
+    if (demoStep === 6){
+      applyConnectExample();
+    } else {
+      clearConnectExample();
+    }
+
+// ✅ v4.5：只在兩個步驟下移說明卡片（①說明棋盤、②連線會加分）；其他步驟一律置中（含「心算 → 找到答案格（示範）」）
+    // 先重置卡片定位，避免前一步殘留樣式
+    if (demoCard){
+      demoCard.style.position = "";
+      demoCard.style.left = "";
+      demoCard.style.top = "";
+      demoCard.style.transform = "";
+      demoCard.style.marginTop = "";
+    }
+    demoOverlay.style.alignItems = "center";
+
+    const needMoveDown = (demoStep === 2 || demoStep === 6);
+    if (needMoveDown && spotRect && demoCard){
+      demoOverlay.style.alignItems = "flex-start";
+      const pad = 18;
+      const top = spotRect.bottom + pad;
+      demoCard.style.position = "fixed";
+      demoCard.style.left = "50%";
+      demoCard.style.top = `${top}px`;
+      demoCard.style.transform = "translateX(-50%)";
+    }
+
+// 目標格：把聚焦框移到該格
+    if (demoStep === 5){
+      const targetSel = `#grid .cell:nth-child(${demoTargetIdx+1})`;
+      showSpotFor(targetSel, true);
+    }
+
+    demoNext.textContent = (s.finish) ? "關閉" : "下一步";
+  }
+
+  function startDemo(){
+    demoDontShow.checked = (localStorage.getItem("productBattleDemoDontShow") === "1");
+    demoStep = 0;
+    setDemo(true);
+    renderDemo();
+    try{ demoNext.focus(); }catch(_){}
+  }
+
+  function endDemo(){
+    if (demoDontShow.checked){
+      localStorage.setItem("productBattleDemoDontShow","1");
+    }
+    setDemo(false);
+  }
+
+  demoNext.addEventListener("click", () => {
+    if (demoSteps[demoStep].finish){
+      endDemo();
+      return;
+    }
+    demoStep = Math.min(demoStep + 1, demoSteps.length - 1);
+    renderDemo();
+  });
+  demoSkip.addEventListener("click", endDemo);
+  demoOverlay.addEventListener("click", (e)=>{ if (e.target === demoOverlay) endDemo(); });
+
+  // 📘 DEMO 按鍵：隨時可重新開啟（就算你勾了「下次不要再顯示」也可以手動開）
+  btnDemo.addEventListener("click", () => {
+    startDemo();
+  });
+
+  // 第一次開啟自動教學（若勾「下次不要再顯示」就不彈）
+  if (localStorage.getItem("productBattleDemoDontShow") !== "1"){
+    setTimeout(() => {
+      if (!started) startDemo();
+    }, 650);
+  }
+
+
+  function lockPickEnabled(){ return toggleLockPick.checked; }
+
+  // ===== 關主設定：Modal（像「撿石30」） =====
+  function syncPlayerCountText(){
+    if (!playerCountTextEl) return;
+    playerCountTextEl.textContent = `${playerCountEl.value}人`;
+  }
+
+  function openHost(){
+    hostBack.classList.add("open");
+    hostBack.setAttribute("aria-hidden","false");
+  }
+  function closeHost(){
+    hostBack.classList.remove("open");
+    hostBack.setAttribute("aria-hidden","true");
+  }
+
+  btnHost.addEventListener("click", openHost);
+  btnHostClose.addEventListener("click", closeHost);
+  hostBack.addEventListener("click", (e) => { if (e.target === hostBack) closeHost(); });
+
+  btnHostApply.addEventListener("click", () => {
+    closeHost();
+    // 套用後回到「尚未開始」
+    initBoardPreview();
+    syncPlayerCountText();
+    updateAIControlsByPlayerCount();
+  });
+
+  syncPlayerCountText();
+
+  // ===== iPad 紀錄抽屜 =====
+  let logOpen = true;
+  function setLogOpen(open){
+    logOpen = open;
+    logBox.style.display = logOpen ? "block" : "none";
+    toggleLogBtn.textContent = logOpen ? "紀錄 ▾" : "紀錄 ▸";
+  }
+  toggleLogBtn.addEventListener("click", () => setLogOpen(!logOpen));
+  if (window.matchMedia("(max-width: 1024px) and (orientation: portrait)").matches) setLogOpen(false);
+
+  // ===== 聊天泡泡 =====
+  function clearChat(){ chat.innerHTML = ""; }
+  function appendMsg(who, text, kind="move"){
+    const row = document.createElement("div");
+    row.className = "msg";
+    if (kind === "system") row.classList.add("from-sys");
+    else if (who.startsWith("P1")) row.classList.add("from-a");
+    else row.classList.add("from-b");
+
+    const whoEl = document.createElement("span");
+    whoEl.className = "who";
+    whoEl.textContent = who;
+
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.textContent = text;
+
+    if (kind === "system") whoEl.style.display = "none";
+
+    row.appendChild(whoEl);
+    row.appendChild(bubble);
+    chat.appendChild(row);
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  // ===== 工具 =====
+  function shuffle(arr){
+    for (let i = arr.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+  function dieRoll1to9(){ return 1 + Math.floor(Math.random() * 9); } // 1..9
+  function fmtMMSS(sec){
+    sec = Math.max(0, Math.floor(sec));
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+  function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+  // ===== 遊戲狀態 =====
+  let started = false;
+  let locked = false;
+  let aiBusy = false;
+
+  let playerCount = 3;
+  let turn = 0;
+  let scores = [];
+
+  let board = [];
+  let owner = [];
+
+  let rolled = false;
+  let dice = [null,null,null];
+  let selectedDice = new Set();
+  let expectedProduct = null;
+
+  const playersLabel = ["P1","P2","P3","P4"];
+  let aiPlayers = [false,false,false,false];
+  let aiLevelByPlayer = ["human","connect","connect","connect"];
+
+  // ===== 計時狀態 =====
+  let totalEndAt = null;
+  let turnEndAt  = null;
+  let timerTickHandle = null;
+
+  function totalTimerEnabled(){ return toggleTotal.checked; }
+  function turnTimerEnabled(){ return toggleTurn.checked; }
+
+  function startTotalTimerIfNeeded(){
+    if (!totalTimerEnabled()){
+      totalEndAt = null; totalTimerEl.textContent = "—"; return;
+    }
+    const mins = Math.max(1, Number(totalMinEl.value || 10));
+    totalMinEl.value = String(mins);
+    totalEndAt = Date.now() + mins * 60 * 1000;
+  }
+
+  function startTurnTimerIfNeeded(){
+    if (!turnTimerEnabled()){
+      turnEndAt = null; turnTimerEl.textContent = "—"; return;
+    }
+    const sec = Math.max(5, Number(turnSecEl.value || 30));
+    turnSecEl.value = String(sec);
+    turnEndAt = Date.now() + sec * 1000;
+  }
+
+  function stopAllTimers(){
+    totalEndAt = null; turnEndAt = null;
+    totalTimerEl.textContent = "—";
+    turnTimerEl.textContent  = "—";
+  }
+
+  function ensureTicker(){
+    if (timerTickHandle) return;
+    timerTickHandle = setInterval(tickTimers, 250);
+  }
+
+  function tickTimers(){
+    if (!started) return;
+    const now = Date.now();
+
+    if (totalTimerEnabled() && totalEndAt != null){
+      const remain = (totalEndAt - now) / 1000;
+      totalTimerEl.textContent = fmtMMSS(remain);
+      if (remain <= 0){ forceEndByTotalTime(); return; }
+    } else totalTimerEl.textContent = "—";
+
+    if (aiBusy){ turnTimerEl.textContent = "—"; return; }
+
+    if (turnTimerEnabled() && turnEndAt != null && !isGameOver() && !locked){
+      const remain = (turnEndAt - now) / 1000;
+      turnTimerEl.textContent = fmtMMSS(remain);
+      if (remain <= 0){
+        appendMsg("系統", `⏰ ${playersLabel[turn]} 回合時間到！自動換下一位（0 分）`, "system");
+        nextTurn("回合時間到，0 分");
+      }
+    } else turnTimerEl.textContent = "—";
+  }
+
+  // ===== 棋盤工具 =====
+  function idxToRC(i){ return [Math.floor(i/6), i%6]; }
+  function rcToIdx(r,c){ return r*6+c; }
+  function neighbors(i){
+    const [r,c] = idxToRC(i);
+    const res = [];
+    if (r>0) res.push(rcToIdx(r-1,c));
+    if (r<5) res.push(rcToIdx(r+1,c));
+    if (c>0) res.push(rcToIdx(r,c-1));
+    if (c<5) res.push(rcToIdx(r,c+1));
+    return res;
+  }
+  function centerBias(i){
+    const [r,c] = idxToRC(i);
+    const dr = Math.abs(r - 2.5);
+    const dc = Math.abs(c - 2.5);
+    return -(dr + dc);
+  }
+
+  function isGameOver(){
+    return started && owner.every(x => x !== -1);
+  }
+
+  // ===== 勝方 + 排行榜 =====
+  function winnerSummary(){
+    const max = Math.max(...scores);
+    const winners = scores.map((s,i)=>({s,i})).filter(x=>x.s===max).map(x=>playersLabel[x.i]);
+    return { max, winners };
+  }
+  function winnerSet(){
+    const { winners } = winnerSummary();
+    return new Set(winners);
+  }
+
+  function buildLeaderboard(){
+    const rows = [];
+    for (let i=0;i<playerCount;i++){
+      rows.push({ label: playersLabel[i], score: scores[i], isAI: !!aiPlayers[i] });
+    }
+    rows.sort((a,b)=> b.score - a.score || a.label.localeCompare(b.label));
+    return rows;
+  }
+
+  function openWinModal(winners, maxScore, reasonText){
+    winReasonEl.textContent = `結束原因：${reasonText}`;
+
+    const winnerText = winners.map(w => `🏆${w}`).join("、");
+    winWinnerEl.textContent = winnerText;
+    winMetaEl.textContent = `最高分：${maxScore} 分`;
+
+    rankListEl.innerHTML = "";
+    const list = buildLeaderboard();
+    list.forEach((r, idx) => {
+      const row = document.createElement("div");
+      row.className = "rankRow";
+
+      const left = document.createElement("div");
+      left.className = "rankLeft";
+
+      const badge = document.createElement("span");
+      badge.className = "rankBadge";
+      badge.textContent = `#${idx+1}`;
+
+      const name = document.createElement("span");
+      name.textContent = `${r.label}${r.isAI ? " 🤖" : ""}${winners.includes(r.label) ? " 🏆" : ""}`;
+
+      left.appendChild(badge);
+      left.appendChild(name);
+
+      const right = document.createElement("div");
+      right.textContent = `${r.score} 分`;
+
+      row.appendChild(left);
+      row.appendChild(right);
+      rankListEl.appendChild(row);
+    });
+
+    winModalBack.classList.add("open");
+    winModalBack.setAttribute("aria-hidden","false");
+    btnWinAgain.focus();
+  }
+
+  function closeWinModal(){
+    winModalBack.classList.remove("open");
+    winModalBack.setAttribute("aria-hidden","true");
+  }
+
+  btnWinClose.addEventListener("click", closeWinModal);
+  winModalBack.addEventListener("click", (e)=>{ if (e.target === winModalBack) closeWinModal(); });
+  window.addEventListener("keydown", (e)=>{ if (e.key==="Escape" && winModalBack.classList.contains("open")) closeWinModal(); });
+
+  // ===== 比分表：不顯示難度，只顯示🏆 =====
+  function renderScores(){
+    scoreBox.innerHTML = "";
+    const winSet = winnerSet();
+    for (let p=0;p<playerCount;p++){
+      const line = document.createElement("div");
+      line.className = "pill scoreLine";
+
+      const tag = aiPlayers[p] ? " 🤖" : "";
+      const name = `${playersLabel[p]}${tag}`;
+      const isWin = winSet.has(playersLabel[p]);
+
+      const cup = document.createElement("span");
+      cup.className = "cup";
+      cup.textContent = isWin ? "🏆" : "";
+
+      const text = document.createElement("span");
+      text.textContent = `${name}：${scores[p]} 分`;
+
+      line.appendChild(cup);
+      line.appendChild(text);
+      scoreBox.appendChild(line);
+    }
+  }
+
+  function renderBoard(){
+    gridEl.innerHTML = "";
+    for (let i=0;i<36;i++){
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.textContent = board[i];
+
+      if (owner[i] !== -1){
+        cell.classList.add("claimed", `p${owner[i]+1}`);
+        const tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = playersLabel[owner[i]];
+        cell.appendChild(tag);
+      }
+
+      cell.addEventListener("click", () => onCellClick(i));
+      gridEl.appendChild(cell);
+    }
+    remainEl.textContent = String(owner.filter(x => x === -1).length);
+  }
+
+  function renderDice(){
+    for (let i=0;i<3;i++){
+      const el = diceEls[i];
+      el.classList.toggle("dis", !rolled || locked || aiBusy);
+      el.textContent = rolled ? String(dice[i]) : "—";
+      el.classList.toggle("sel", selectedDice.has(i));
+    }
+  }
+
+  function setHint(text){ hintEl.textContent = text; }
+  function setStatus(text){ statusEl.textContent = text; }
+  function setTurnUI(){ turnEl.textContent = started ? playersLabel[turn] : "—"; }
+
+  function readAISettings(){
+    aiPlayers = [false,false,false,false];
+    aiLevelByPlayer = ["human","connect","connect","connect"];
+
+    if (playerCount >= 2) {
+      aiPlayers[1] = !!aiP2.checked;
+      aiLevelByPlayer[1] = aiLevelP2.value || "connect";
+    }
+    if (playerCount >= 3) {
+      aiPlayers[2] = !!aiP3.checked;
+      aiLevelByPlayer[2] = aiLevelP3.value || "connect";
+    }
+    if (playerCount >= 4) {
+      aiPlayers[3] = !!aiP4.checked;
+      aiLevelByPlayer[3] = aiLevelP4.value || "connect";
+    }
+  }
+  function isAI(pIndex){ return !!aiPlayers[pIndex]; }
+
+  function updateAIControlsByPlayerCount(){
+    const pc = Number(playerCountEl.value);
+
+    aiP2.disabled = pc < 2; if (pc < 2) aiP2.checked = false;
+    aiP3.disabled = pc < 3; if (pc < 3) aiP3.checked = false;
+    aiP4.disabled = pc < 4; if (pc < 4) aiP4.checked = false;
+
+    aiLevelP2.disabled = (pc < 2) || !aiP2.checked;
+    aiLevelP3.disabled = (pc < 3) || !aiP3.checked;
+    aiLevelP4.disabled = (pc < 4) || !aiP4.checked;
+
+    aiGroup.classList.toggle("aiDisabled", pc < 2);
+  }
+
+  playerCountEl.addEventListener("change", () => { updateAIControlsByPlayerCount(); syncPlayerCountText(); });
+  aiP2.addEventListener("change", updateAIControlsByPlayerCount);
+  aiP3.addEventListener("change", updateAIControlsByPlayerCount);
+  aiP4.addEventListener("change", updateAIControlsByPlayerCount);
+  updateAIControlsByPlayerCount();
+
+  function setControls(){
+    // Demo 期間：禁止背景操作
+    if (demoOn){
+      btnRoll.disabled = true;
+      btnEndTurn.disabled = true;
+      btnNew.disabled = true;
+      btnHost.disabled = true;
+      playerCountEl.disabled = true;
+      return;
+    }
+    btnNew.disabled = false;
+    btnHost.disabled = false;
+    playerCountEl.disabled = false;
+    btnRoll.disabled = !started || locked || rolled || isGameOver() || aiBusy || isAI(turn);
+    btnEndTurn.disabled = !started || locked || isGameOver() || aiBusy || isAI(turn);
+  }
+
+  // 結束原因文字（固定兩種）
+  function reasonToText(reason){
+    if (reason === "總時間到") return "總時間到";
+    if (reason === "棋盤佔滿") return "棋盤佔滿";
+    return reason;
+  }
+
+  function endGame(reason){
+    const { max, winners } = winnerSummary();
+    const reasonText = reasonToText(reason);
+
+    setStatus(`結束：${reasonText}`);
+    const winnerText = winners.map(w => `🏆${w}`).join("、");
+    appendMsg("系統", `結算：${reasonText}｜最高分 ${max} 分｜勝者：${winnerText}`, "system");
+    setHint("遊戲結束，可按「開始 / 重來」或在勝利視窗按「再來一局」。");
+
+    rolled = false;
+    selectedDice.clear();
+    expectedProduct = null;
+    aiBusy = false;
+    renderDice();
+    renderScores();
+
+    // ✅ 顯示勝利視窗（含原因＋再來一局）
+    openWinModal(winners, max, reasonText);
+
+    setControls();
+  }
+
+  function forceEndByTotalTime(){
+    endGame("總時間到");
+    started = false;
+    stopAllTimers();
+  }
+
+  function nextTurn(reason){
+    rolled = false;
+    dice = [null,null,null];
+    selectedDice.clear();
+    expectedProduct = null;
+
+    turn = (turn + 1) % playerCount;
+    setTurnUI();
+
+    startTurnTimerIfNeeded();
+
+    if (isGameOver()){
+      endGame("棋盤佔滿");
+      started = false;
+      stopAllTimers();
+      return;
+    }
+
+    setStatus("進行中");
+    const who = playersLabel[turn] + (isAI(turn) ? " 🤖" : "");
+    setHint(`輪到 ${who}：${isAI(turn) ? "AI 行動中…" : "按「擲骰」開始本回合。"}${reason ? "（" + reason + "）" : ""}`);
+    renderDice();
+    renderScores();
+    setControls();
+
+    maybeRunAI();
+  }
+
+  // ===== 遊戲開始 =====
+  function startGame(){
+    closeWinModal();
+
+    playerCount = Number(playerCountEl.value);
+    syncPlayerCountText();
+    scores = Array(playerCount).fill(0);
+    turn = 0;
+
+    board = shuffle([...UNIQUE_PRODUCTS]);
+    owner = Array(36).fill(-1);
+
+    started = true;
+    locked = false;
+    aiBusy = false;
+
+    rolled = false;
+    dice = [null,null,null];
+    selectedDice.clear();
+    expectedProduct = null;
+
+    readAISettings();
+    updateAIControlsByPlayerCount();
+
+    clearChat();
+    appendMsg("系統", `新遊戲開始：6×6 不重複棋盤｜玩家數 ${playerCount}｜P1 先手`, "system");
+    for (let p=1;p<playerCount;p++){
+      if (aiPlayers[p]) appendMsg("系統", `${playersLabel[p]} 設為 AI 🤖`, "system");
+    }
+
+    setStatus("進行中");
+    setTurnUI();
+    renderScores();
+    renderBoard();
+    renderDice();
+
+    const who = playersLabel[turn] + (isAI(turn) ? " 🤖" : "");
+    setHint(`輪到 ${who}：${isAI(turn) ? "AI 行動中…" : "按「擲骰」開始本回合。"} `);
+    setControls();
+
+    startTotalTimerIfNeeded();
+    startTurnTimerIfNeeded();
+    ensureTicker();
+
+    maybeRunAI();
+  }
+
+  // 勝利視窗的「再來一局」
+  btnWinAgain.addEventListener("click", () => {
+    closeWinModal();
+    startGame();
+  });
+
+  // ===== 玩家動作 =====
+  function onRoll(){
+    if (demoOn) { setHint('📘 教學進行中：請按「下一步」或「略過」。'); return; }
+
+    if (!started || locked || rolled || isGameOver() || aiBusy || isAI(turn)) return;
+    rolled = true;
+    dice = [dieRoll1to9(), dieRoll1to9(), dieRoll1to9()];
+    selectedDice.clear();
+    expectedProduct = null;
+
+    appendMsg(playersLabel[turn], `擲骰：${dice[0]}、${dice[1]}、${dice[2]}`);
+    setHint(`請選兩顆骰（不顯示乘積），再點棋盤格。`);
+    renderDice();
+    setControls();
+  }
+
+  function onDieClick(i){
+    if (demoOn) { setHint('📘 教學進行中：請按「下一步」或「略過」。'); return; }
+
+    if (!started || locked || !rolled || isGameOver() || aiBusy || isAI(turn)) return;
+
+    if (selectedDice.has(i)) selectedDice.delete(i);
+    else {
+      if (selectedDice.size >= 2) return;
+      selectedDice.add(i);
+    }
+
+    if (selectedDice.size === 2){
+      const [a,b] = [...selectedDice];
+      expectedProduct = dice[a] * dice[b];
+      setHint(`已選兩顆骰。請心算後點一格（點錯就 0 分換人）。`);
+    } else {
+      expectedProduct = null;
+      setHint(`請選兩顆骰（不顯示乘積），再點棋盤格。`);
+    }
+
+    renderDice();
+  }
+
+  function onCellClick(i){
+    if (demoOn) { setHint('📘 教學進行中：請按「下一步」或「略過」。'); return; }
+
+    if (!started || locked || isGameOver() || aiBusy) return;
+
+    if (!rolled){
+      setHint("請先按「擲骰」開始本回合。");
+      return;
+    }
+
+    if (lockPickEnabled() && (selectedDice.size !== 2 || expectedProduct == null)){
+      setHint("（鎖定中）請先選好兩顆骰，再點棋盤格。");
+      return;
+    }
+    if (!lockPickEnabled() && (selectedDice.size !== 2 || expectedProduct == null)){
+      setHint("請先選兩顆骰，再點棋盤格。");
+      return;
+    }
+
+    locked = true;
+    setControls();
+
+    const target = expectedProduct;
+    const cellNumber = board[i];
+
+    if (owner[i] !== -1){
+      appendMsg("系統", `❌ 點到已佔領格（${cellNumber}）！本回合 0 分。`, "system");
+      locked = false;
+      nextTurn("點到已佔領格，0 分");
+      return;
+    }
+
+    if (cellNumber !== target){
+      appendMsg("系統", `❌ 點錯！（你點 ${cellNumber}）本回合 0 分。`, "system");
+      locked = false;
+      nextTurn("點錯，0 分");
+      return;
+    }
+
+    owner[i] = turn;
+
+    let pts = 1;
+    const connected = neighbors(i).some(j => owner[j] === turn);
+    if (connected) pts = 2;
+
+    scores[turn] += pts;
+    renderScores();
+    renderBoard();
+
+    const who = playersLabel[turn] + (isAI(turn) ? " 🤖" : "");
+    appendMsg(who, `✅ 點對！佔領 ${cellNumber}（得 ${pts} 分${connected ? "：相連×2" : ""}）`);
+    locked = false;
+
+    if (isGameOver()){
+      endGame("棋盤佔滿");
+      started = false;
+      stopAllTimers();
+      renderDice();
+      setControls();
+      return;
+    }
+
+    nextTurn(pts === 2 ? "成功佔領（相連×2）" : "成功佔領");
+  }
+
+  // ===== Pass（二次確認） =====
+  let pendingPass = false;
+  function openPassModal(){
+    if (pendingPass) return;
+    pendingPass = true;
+    const who = playersLabel[turn] + (isAI(turn) ? " 🤖" : "");
+    passDesc.innerHTML = `目前是 <b>${who}</b> 的回合。你將以 <b>0 分</b> 放棄本回合並換下一位。`;
+    passModalBack.classList.add("open");
+    passModalBack.setAttribute("aria-hidden","false");
+    btnPassConfirm.focus();
+  }
+  function closePassModal(){
+    pendingPass = false;
+    passModalBack.classList.remove("open");
+    passModalBack.setAttribute("aria-hidden","true");
+  }
+  function onPassClick(){
+    if (demoOn) { setHint('📘 教學進行中：請按「下一步」或「略過」。'); return; }
+
+    if (!started || locked || isGameOver() || aiBusy || isAI(turn)) return;
+    openPassModal();
+  }
+  function confirmPass(){
+    if (demoOn) { setHint('📘 教學進行中：請按「下一步」或「略過」。'); return; }
+
+    if (!pendingPass) return;
+    closePassModal();
+    const who = playersLabel[turn] + (isAI(turn) ? " 🤖" : "");
+    appendMsg("系統", `⏭ ${who} 放棄本回合（0 分）`, "system");
+    nextTurn("放棄本回合，0 分");
+  }
+  btnEndTurn.addEventListener("click", onPassClick);
+  btnPassCancel.addEventListener("click", closePassModal);
+  btnPassConfirm.addEventListener("click", confirmPass);
+  passModalBack.addEventListener("click", (e) => { if (e.target === passModalBack) closePassModal(); });
+  window.addEventListener("keydown", (e) => { if (pendingPass && e.key === "Escape") closePassModal(); });
+
+  // ===== AI（策略保留）=====
+  function findAvailableCellsByNumber(num){
+    const res = [];
+    for (let i=0;i<36;i++){
+      if (owner[i] === -1 && board[i] === num) res.push(i);
+    }
+    return res;
+  }
+
+  function listAllCandidateMoves(pIndex){
+    const pairs = [[0,1],[0,2],[1,2]];
+    const candidates = [];
+    for (const [a,b] of pairs){
+      const product = dice[a] * dice[b];
+      const cells = findAvailableCellsByNumber(product);
+      for (const idx of cells){
+        const ns = neighbors(idx);
+        const conn = ns.some(j => owner[j] === pIndex);
+        const pts = conn ? 2 : 1;
+        const adjSelf = ns.filter(j => owner[j] === pIndex).length;
+        candidates.push({a,b,product,idx,pts,conn,adjSelf});
+      }
+    }
+    return candidates;
+  }
+
+  function pickRandomMove(pIndex){
+    const candidates = listAllCandidateMoves(pIndex);
+    if (candidates.length === 0) return null;
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+
+  function pickConnectMove(pIndex){
+    const candidates = listAllCandidateMoves(pIndex);
+    if (candidates.length === 0) return null;
+    let best = null;
+    for (const m of candidates){
+      const score = m.pts*1000 + m.adjSelf*25 + centerBias(m.idx);
+      if (!best || score > best.score) best = {...m, score};
+    }
+    return best;
+  }
+
+  function pickAggressiveBlockMove(pIndex){
+    const candidates = listAllCandidateMoves(pIndex);
+    if (candidates.length === 0) return null;
+
+    function blockScore(idx){
+      let s = 0;
+      const ns = neighbors(idx);
+      for (let op=0; op<playerCount; op++){
+        if (op === pIndex) continue;
+
+        const adjOpp = ns.filter(j => owner[j] === op).length;
+        s += adjOpp * 220;
+
+        let frontier = 0;
+        for (const j of ns){
+          if (owner[j] !== -1) continue;
+          const nj = neighbors(j);
+          if (nj.some(k => owner[k] === op)) frontier++;
+        }
+        s += frontier * 60;
+      }
+      return s;
+    }
+
+    let best = null;
+    for (const m of candidates){
+      const bs = blockScore(m.idx);
+      const score = m.pts*650 + m.adjSelf*15 + bs + centerBias(m.idx);
+      if (!best || score > best.score) best = {...m, score, bs};
+    }
+    return best;
+  }
+
+  function chooseAIMove(pIndex){
+    const lvl = aiLevelByPlayer[pIndex] || "connect";
+    if (lvl === "random") return pickRandomMove(pIndex);
+    if (lvl === "block")  return pickAggressiveBlockMove(pIndex);
+    return pickConnectMove(pIndex);
+  }
+
+  async function maybeRunAI(){
+    if (!started || isGameOver()) return;
+    if (!isAI(turn)) return;
+    if (aiBusy) return;
+
+    aiBusy = true;
+    setControls();
+
+    const who = playersLabel[turn] + " 🤖";
+    setHint(`輪到 ${who}：AI 行動中…`);
+    appendMsg("系統", `🤖 ${playersLabel[turn]}（AI）開始行動`, "system");
+
+    await sleep(520);
+    if (!started || isGameOver() || !isAI(turn)) { aiBusy = false; setControls(); return; }
+
+    rolled = true;
+    dice = [dieRoll1to9(), dieRoll1to9(), dieRoll1to9()];
+    selectedDice.clear();
+    expectedProduct = null;
+    renderDice();
+    appendMsg(who, `擲骰：${dice[0]}、${dice[1]}、${dice[2]}`);
+
+    await sleep(520);
+    if (!started || isGameOver() || !isAI(turn)) { aiBusy = false; setControls(); return; }
+
+    const move = chooseAIMove(turn);
+    if (!move){
+      appendMsg("系統", `🤖 ${playersLabel[turn]} 沒有合法落點（3 組乘積都無可佔格）→ 0 分換人`, "system");
+      aiBusy = false;
+      nextTurn("AI 無合法落點，0 分");
+      return;
+    }
+
+    selectedDice = new Set([move.a, move.b]);
+    expectedProduct = move.product;
+    renderDice();
+    appendMsg(who, `選骰：第${move.a+1}顆 × 第${move.b+1}顆（不公開乘積）`);
+
+    await sleep(520);
+    if (!started || isGameOver() || !isAI(turn)) { aiBusy = false; setControls(); return; }
+
+    aiBusy = false;
+    onCellClick(move.idx);
+    setControls();
+  }
+
+  // ===== 事件綁定 =====
+  btnNew.addEventListener("click", startGame);
+  btnRoll.addEventListener("click", onRoll);
+  diceEls.forEach((el, idx) => el.addEventListener("click", () => onDieClick(idx)));
+
+  function applyTimerTogglesNow(){
+    if (!started) return;
+
+    if (totalTimerEnabled()){
+      if (totalEndAt == null) startTotalTimerIfNeeded();
+    } else {
+      totalEndAt = null; totalTimerEl.textContent = "—";
+    }
+
+    if (turnTimerEnabled()){
+      if (turnEndAt == null) startTurnTimerIfNeeded();
+    } else {
+      turnEndAt = null; turnTimerEl.textContent = "—";
+    }
+  }
+  toggleTotal.addEventListener("change", applyTimerTogglesNow);
+  toggleTurn.addEventListener("change", applyTimerTogglesNow);
+
+  function hintAIChange(){
+    if (!started) return;
+    appendMsg("系統", "⚙️ AI 設定 / 難度已變更：將在「下一局」開始時生效。", "system");
+  }
+  aiP2.addEventListener("change", hintAIChange);
+  aiP3.addEventListener("change", hintAIChange);
+  aiP4.addEventListener("change", hintAIChange);
+  aiLevelP2.addEventListener("change", hintAIChange);
+  aiLevelP3.addEventListener("change", hintAIChange);
+  aiLevelP4.addEventListener("change", hintAIChange);
+
+  function initBoardPreview(){
+    board = shuffle([...UNIQUE_PRODUCTS]);
+    owner = Array(36).fill(-1);
+    renderBoard();
+    renderDice();
+    scores = [0,0,0,0];
+    playerCount = Number(playerCountEl.value);
+    syncPlayerCountText();
+    setTurnUI();
+    renderScores();
+    setHint("請選玩家數後按「開始 / 重來」。");
+    setStatus("尚未開始");
+    stopAllTimers();
+    setControls();
+  }
+  initBoardPreview();
+})();
+</script>
+</body>
+</html>

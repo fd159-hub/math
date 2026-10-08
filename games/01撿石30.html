@@ -1,0 +1,1025 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>撿石30（含教學模式）</title>
+  <style>
+    body{font-family:system-ui,-apple-system,"Segoe UI",Arial;margin:16px;background:#fafafa}
+    .wrap{max-width:980px;margin:0 auto}
+    h1{margin:0 0 10px;font-size:22px}
+    .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0 12px}
+    .pill{padding:6px 10px;border:1px solid #ccc;border-radius:999px;font-size:14px;background:#fff}
+    .pill strong{font-weight:900}
+    select,input{padding:7px 10px;border-radius:10px;border:1px solid #999}
+    button{padding:10px 12px;border-radius:12px;border:1px solid #333;background:#fff;font-size:15px;cursor:pointer}
+    button:disabled{opacity:.45;cursor:not-allowed}
+
+    .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
+    .left{flex:1 1 520px}
+    .right{flex:1 1 360px}
+
+    .panel{border:1px solid #ddd;border-radius:14px;padding:12px;background:#fff}
+    .panel h3{margin:0 0 10px;font-size:16px}
+    .note{font-size:13px;line-height:1.55;color:#333;margin-top:10px}
+
+    /* ===== 石頭堆視覺化 ===== */
+    .pileHeader{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .remainNum{font-size:20px;font-weight:1000}
+    .hintBadge{
+      font-size:13px;
+      font-weight:900;
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid #999;
+      background:#fff;
+    }
+    .safe{border-color:#198754;color:#198754}
+    .danger{border-color:#dc3545;color:#dc3545}
+    .neutral{border-color:#999;color:#333}
+
+    .pile{
+      margin-top:10px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      justify-content:flex-start;
+      padding:10px;
+      border:1px dashed #bbb;
+      border-radius:14px;
+      background:#fcfcfc;
+      min-height:92px;
+      -webkit-overflow-scrolling:touch;
+    }
+    .stone{
+      width:18px;height:18px;border-radius:999px;
+      border:1px solid #333;background:#fff;
+      transition:transform .18s ease, opacity .18s ease, filter .18s ease;
+    }
+    .stone.last{ background:#d11 !important; }
+
+    .stone.gone{
+      opacity:.12;
+      transform:scale(.65);
+      filter:grayscale(1);
+    }
+
+    /* ===== 動作區 ===== */
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .btnTake{min-width:92px}
+    .statusLine{margin-top:10px;font-weight:900}
+
+    /* ===== 記錄（iPad 友善卷軸） ===== */
+    .log{
+      border:1px solid #ddd;border-radius:12px;padding:10px;margin-top:10px;
+      height:min(26vh,240px);overflow-y:auto;-webkit-overflow-scrolling:touch;background:#fff;
+    }
+    .chat{display:flex;flex-direction:column;gap:8px}
+    .msg{display:flex;gap:8px;align-items:flex-end}
+    .who{font-size:12px;border:1px solid #999;border-radius:999px;padding:2px 8px;background:#fff;flex:0 0 auto}
+    .bubble{max-width:78%;border:1px solid #aaa;border-radius:14px;padding:8px 10px;font-size:14px;line-height:1.4;background:#fff;word-break:break-word}
+    .from-a{justify-content:flex-start}
+    .from-b{justify-content:flex-end}
+    .from-b .bubble{order:0}
+    .from-b .who{order:1}
+    .from-sys{justify-content:center}
+    .from-sys .who{display:none}
+    .from-sys .bubble{max-width:92%;text-align:center;border-style:dashed;background:#f6f6f6;border-color:#888;font-weight:800}
+    .from-sys .bubble::before{content:"🤖 系統：";font-weight:900}
+
+    /* ===== Modal（可擴充） ===== */
+    .modalBack{
+      position:fixed; inset:0; background:rgba(0,0,0,.35);
+      display:none; align-items:center; justify-content:center;
+      padding:16px; z-index:9999;
+    }
+    .modalBack.open{display:flex}
+    .modal{
+      width:min(520px, 96vw);
+      background:#fff; border:1px solid #333; border-radius:16px;
+      padding:14px;
+      box-shadow:0 20px 60px rgba(0,0,0,.25);
+    }
+    .modal h4{margin:0 0 8px;font-size:18px}
+    .modalBtns{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+    .winWinner{font-size:28px;font-weight:1000;margin:8px 0}
+  
+    /* ===== 教學模式 DEMO ===== */
+    body.demoOn .wrap{pointer-events:none; user-select:none}
+    #demoOverlay{
+      position:fixed; inset:0;
+      display:none; align-items:center; justify-content:center;
+      background:rgba(0,0,0,.55);
+      padding:18px; z-index:10000;
+    }
+    body.demoOn #demoOverlay{display:flex}
+    #demoSpotlight{
+      position:fixed;
+      border-radius:16px;
+      outline:4px solid #ffd500;
+      z-index:10001;
+      background:transparent;
+      pointer-events:none;
+      display:none;
+      transition: all .18s ease;
+    }
+    #demoSpotlight.pulse{ animation: demoPulse 1.15s ease-in-out infinite; }
+    @keyframes demoPulse{ 0%{transform:scale(1)} 50%{transform:scale(1.02)} 100%{transform:scale(1)} }
+    #demoCard{
+      position:relative;
+      z-index:10002;
+width:min(560px, 96vw);
+      background:#fff;
+      border:1px solid #333;
+      border-radius:16px;
+      padding:14px;
+      box-shadow:0 20px 60px rgba(0,0,0,.30);
+      pointer-events:auto;
+    }
+    #demoCard h4{margin:0 0 6px;font-size:18px}
+    
+    .demoHead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .demoHead h4{margin:0;font-size:18px}
+    .demoHead #demoStepDots{margin:0}
+#demoStepDots{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0;}
+    .dot{width:10px;height:10px;border-radius:999px;border:1px solid #666;background:#fff;opacity:.35}
+    .dot.on{opacity:1}
+    #demoBtns{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
+    #demoBtns button{padding:10px 12px;border-radius:12px;border:1px solid #333;background:#fff;font-size:15px;cursor:pointer}
+    #demoSmall{font-size:13px;line-height:1.55;color:#333}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <h1>🪨 撿石30</h1>
+
+  <div class="bar">
+    <div class="pill">狀態：<strong id="status">尚未開始</strong></div>
+    <div class="pill" style="display:none">回合玩家：<strong id="turn">—</strong></div>
+    <div class="pill" style="display:none">剩餘石頭：<strong id="remainTop">30</strong></div>
+    <select id="playerCount" style="display:none"><option value="2" selected>2</option><option value="3">3</option></select>
+    <div class="pill">設定：<strong id="settingsSummary">2｜總數 30｜每次 1–3</strong></div>
+<button id="btnNew">開始 / 重來</button>
+
+    
+    <button id="btnDemo" style="border-style:dashed">🎬 教學模式</button>
+    <button id="btnHost" style="border-style:dashed">⚙️ 關主設定</button>
+</div>
+<div class="row">
+    <div class="left">
+      <div class="panel">
+        <h3>石頭堆</h3>
+
+        <div class="pileHeader">
+          <div class="remainNum">剩餘：<span id="remainNum">30</span></div>
+          <span class="hintBadge neutral" id="practiceBadge">（練習模式未開）</span>
+        </div>
+
+        <div class="pile" id="pile"></div>
+
+        <div class="actions" id="actions"></div>
+
+        <div class="statusLine" id="hint">請按「開始 / 重來」。</div>
+
+        <div class="note">
+          規則：桌上 30 顆石頭，輪流拿 1–3 顆，<b>拿到最後一顆的人獲勝</b>。<br>
+          練習模式提示：<span style="color:#198754;font-weight:900">綠色＝安全</span>（有必勝策略）、
+          <span style="color:#dc3545;font-weight:900">紅色＝危險</span>（對手夠聰明你會輸）。
+        </div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="panel">
+        <h3>比分</h3>
+        <div id="scoreBox"></div>
+
+        <h3 style="margin-top:12px">對戰紀錄</h3>
+        <div class="log" id="log">
+          <div class="chat" id="chat"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- 教學模式 Overlay -->
+<div id="demoOverlay" aria-hidden="true">
+  <div id="demoSpotlight" class="pulse" style="left:-9999px;top:-9999px;width:0;height:0"></div>
+
+  <div id="demoCard" role="dialog" aria-modal="true" aria-labelledby="demoTitle">
+    <div class="demoHead"><h4 id="demoTitle">🎬 教學模式</h4><div id="demoStepDots" aria-label="steps"></div></div>
+    <div id="demoText" class="small" style="line-height:1.6"></div>
+    <div id="demoBtns">
+      <button id="demoSkip" style="border-style:dashed">跳過</button>
+      <button id="demoPrev">上一步</button>
+      <button id="demoNext">下一步</button>
+    </div>
+
+    <div id="demoSmall" class="hint" style="margin-top:10px">
+      教學模式只做示範，不會影響你原本的局勢與勝場。
+</div>
+  </div>
+</div>
+
+
+<!-- 關主設定 -->
+<div class="modalBack" id="hostBack" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="hostTitle">
+    <h4 id="hostTitle">⚙️ 關主設定</h4>
+
+    <div class="pill" style="margin:10px 0">玩家數：
+      <select id="hostPlayerCount">
+        <option value="2" selected>2</option>
+        <option value="3">3</option>
+      </select>
+    </div>
+
+    <div class="pill" style="display:flex;gap:10px;align-items:center;margin:10px 0">
+      <input type="checkbox" id="aiP2" />
+      2P 設為 AI
+    </div>
+    <div class="pill" style="display:flex;gap:10px;align-items:center;margin:10px 0">
+      <input type="checkbox" id="aiP3" />
+      3P 設為 AI（僅 3P 時有效）
+    </div>
+
+    <div class="pill" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0">
+      總數（石頭）：
+      <input id="hostTotal" type="number" min="5" max="200" step="1" value="30" style="width:78px" />
+      <span class="small" style="opacity:.8">建議 15–80</span>
+    </div>
+
+    <div class="pill" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0">
+      每回合可拿：
+      <span class="small">1 到</span>
+      <input id="hostMaxTake" type="number" min="1" max="10" step="1" value="3" style="width:64px" />
+      <span class="small" style="opacity:.8">（例：1–3）</span>
+    </div>
+    <div class="pill" style="display:flex;gap:10px;align-items:center;margin:10px 0">
+      <input type="checkbox" id="togglePractice" />
+      練習模式（安全/危險提示）
+    </div>
+    <div class="pill" style="display:flex;gap:10px;align-items:center;margin:10px 0">
+      <input type="checkbox" id="toggleLastRed" checked />
+      最後一顆石頭標紅
+    </div>
+
+
+
+
+    <div class="small" id="hostNote" style="line-height:1.6;opacity:.85;margin:10px 0">
+      套用設定後會回到「尚未開始」狀態（勝場不會清除）。
+    </div>
+
+    <div class="modalBtns">
+      <button id="btnHostClose">關閉</button>
+      <button id="btnHostApply">套用</button>
+    </div>
+  </div>
+</div>
+
+<!-- 勝利視窗 -->
+<div class="modalBack" id="winBack" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="winTitle">
+    <h4 id="winTitle">遊戲結束</h4>
+    <div class="winWinner" id="winWinner">—</div>
+    <div class="modalBtns">
+      <button id="btnWinAgain">再來一局</button>
+      <button id="btnWinClose">關閉</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ===== 設定 =====
+  let TOTAL_STONES = 30;
+  const MIN_TAKE = 1;
+  let MAX_TAKE = 3;
+  let lastStoneRed = true;
+
+  // ===== DOM =====
+  const statusEl = document.getElementById("status");
+  const turnEl = document.getElementById("turn");
+  const remainTopEl = document.getElementById("remainTop");
+  const remainNumEl = document.getElementById("remainNum");
+  const pileEl = document.getElementById("pile");
+  const hintEl = document.getElementById("hint");
+  const practiceBadge = document.getElementById("practiceBadge");
+
+  const playerCountEl = document.getElementById("playerCount");
+  const btnNew = document.getElementById("btnNew");
+  const btnDemo = document.getElementById("btnDemo");
+  const btnHost = document.getElementById("btnHost");
+  const hostBack = document.getElementById("hostBack");
+  const hostPlayerCount = document.getElementById("hostPlayerCount");
+  const hostTotal = document.getElementById("hostTotal");
+  const hostMaxTake = document.getElementById("hostMaxTake");
+    const toggleLastRed = document.getElementById("toggleLastRed");
+const btnHostApply = document.getElementById("btnHostApply");
+  const btnHostClose = document.getElementById("btnHostClose");
+  const settingsSummaryEl = document.getElementById("settingsSummary");
+  const togglePractice = document.getElementById("togglePractice");
+
+  // demo overlay
+  const demoOverlay = document.getElementById("demoOverlay");
+  const demoSpot = document.getElementById("demoSpotlight");
+  const demoCard = document.getElementById("demoCard");
+  const demoTitle = document.getElementById("demoTitle");
+  const demoText = document.getElementById("demoText");
+  const demoDots = document.getElementById("demoStepDots");
+  const demoPrev = document.getElementById("demoPrev");
+  const demoNext = document.getElementById("demoNext");
+  const demoSkip = document.getElementById("demoSkip");
+  const actionsEl = document.getElementById("actions");
+  let takeButtons = [];
+
+  const aiP2 = document.getElementById("aiP2");
+  const aiP3 = document.getElementById("aiP3");
+
+  const scoreBox = document.getElementById("scoreBox");
+
+  const logBox = document.getElementById("log");
+  const chat = document.getElementById("chat");
+
+  // win modal
+  const winBack = document.getElementById("winBack");
+  const winWinner = document.getElementById("winWinner");
+  const btnWinAgain = document.getElementById("btnWinAgain");
+  const btnWinClose = document.getElementById("btnWinClose");
+
+  // ===== 狀態 =====
+  const playersLabel = ["1P","2P","3P"];
+  let playerCount = 2;
+
+  let started = false;
+  let turn = 0;
+  let remaining = TOTAL_STONES;
+
+  // 這裡的「分數」用：贏一局 +1（你也可以改成累積拿到的顆數）
+  let scores = [0,0,0];
+
+  let aiPlayers = [false,true,false]; // default: 2P AI
+  let aiBusy = false;
+
+  // ===== 教學模式（DEMO） =====
+  let demoOn = false;
+  let demoStep = 0;
+  let demoSnapshot = null;
+
+  // ===== UI：聊天泡泡 =====
+  function clearChat(){ chat.innerHTML=""; }
+  function appendMsg(who, text, kind="move"){
+    const row = document.createElement("div");
+    row.className = "msg";
+    if (kind === "system") row.classList.add("from-sys");
+    else if (who.startsWith("1P")) row.classList.add("from-a");
+    else row.classList.add("from-b");
+
+    const whoEl = document.createElement("span");
+    whoEl.className = "who";
+    whoEl.textContent = who;
+
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.textContent = text;
+
+    if (kind === "system") whoEl.style.display = "none";
+
+    row.appendChild(whoEl);
+    row.appendChild(bubble);
+    chat.appendChild(row);
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  // ===== 工具 =====
+  function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+  function setStatus(t){ statusEl.textContent = t; }
+  function setHint(t){ hintEl.textContent = t; }
+  function setTurnUI(){ turnEl.textContent = started ? playersLabel[turn] + (aiPlayers[turn] ? " 🤖" : "") : "—"; }
+
+  function clampTake(n){
+    return Math.max(MIN_TAKE, Math.min(MAX_TAKE, n));
+  }
+
+  // ===== 視覺化石頭堆 =====
+  function renderPile(){
+    pileEl.innerHTML = "";
+    for (let i=0;i<TOTAL_STONES;i++){
+      const dot = document.createElement("div");
+      dot.className = "stone";
+      // 以「剩餘」決定哪些消失：前 remaining 顆亮、後面 gone
+      if (i >= remaining) dot.classList.add("gone");
+      else if (lastStoneRed && remaining > 0 && i === 0) dot.classList.add("last");
+      pileEl.appendChild(dot);
+    }
+  }
+
+
+  function rebuildTakeButtons(){
+    actionsEl.innerHTML = "";
+    takeButtons = [];
+    for (let k=MIN_TAKE; k<=MAX_TAKE; k++){
+      const b = document.createElement("button");
+      b.className = "btnTake";
+      b.textContent = `拿 ${k} 顆`;
+      b.dataset.k = String(k);
+      b.disabled = true;
+      b.addEventListener("click", () => takeStones(k, turn));
+      actionsEl.appendChild(b);
+      takeButtons.push(b);
+    }
+  }
+
+
+  // ===== 練習模式：安全/危險（用 DP/winner 邏輯）=====
+  // winning[n] = 當輪到你、桌上剩 n 顆時，你是否有必勝策略
+  function computeWinningTable(maxN){
+    const win = Array(maxN+1).fill(false);
+    win[0] = false; // 沒石頭可拿：當前玩家輸
+    for (let n=1;n<=maxN;n++){
+      let canWin = false;
+      for (let k=MIN_TAKE;k<=MAX_TAKE;k++){
+        if (n-k >= 0 && win[n-k] === false){
+          canWin = true; break;
+        }
+      }
+      win[n] = canWin;
+    }
+    return win;
+  }
+  let winningTable = computeWinningTable(TOTAL_STONES);
+
+  function renderPracticeBadge(){
+    if (!togglePractice.checked){
+      practiceBadge.className = "hintBadge neutral";
+      practiceBadge.textContent = "（練習模式未開）";
+      return;
+    }
+    // 以「輪到的人」在目前 remaining 的勝負位判定
+    const safe = winningTable[remaining] === true;
+    practiceBadge.className = "hintBadge " + (safe ? "safe" : "danger");
+    practiceBadge.textContent = safe ? "✅ 安全（有必勝策略）" : "⚠️ 危險（對手夠聰明你會輸）";
+  }
+
+  // ===== 比分 =====
+  function renderScores(){
+    scoreBox.innerHTML = "";
+    for (let i=0;i<playerCount;i++){
+      const row = document.createElement("div");
+      row.className = "scoreRow";
+      const name = playersLabel[i]; // 1P/2P/3P
+      row.innerHTML = `<span class="who">${name}${aiPlayers[i] ? " 🤖" : ""}</span><span class="pts">${scores[i]} 勝</span>`;
+      scoreBox.appendChild(row);
+    }
+  }
+
+  // ===== 按鈕狀態 =====
+  function setControls(){
+    const canHuman = started && !aiBusy && !aiPlayers[turn];
+    for (let i=0;i<takeButtons.length;i++){
+      const btn = takeButtons[i];
+      const k = Number(btn.dataset.k);
+      btn.disabled = !canHuman || remaining < k;
+    }
+  }
+
+  // ===== 回合流程 =====
+  function nextTurn(msg){
+    if (!started) return;
+    if (remaining <= 0) return;
+
+    turn = (turn + 1) % playerCount;
+    setTurnUI();
+    remainTopEl.textContent = String(remaining);
+    remainNumEl.textContent = String(remaining);
+    renderPile();
+    renderPracticeBadge();
+
+    setStatus("進行中");
+    setHint(`輪到 ${playersLabel[turn]}${aiPlayers[turn] ? " 🤖" : ""}。${msg ? "（" + msg + "）" : ""}`);
+    setControls();
+
+    maybeRunAI();
+  }
+
+  function endGame(winnerIndex){
+    started = false;
+    aiBusy = false;
+    setControls();
+    setStatus("結束");
+
+    scores[winnerIndex] += 1;
+    renderScores();
+
+    const w = playersLabel[winnerIndex] + (aiPlayers[winnerIndex] ? " 🤖" : "");
+    appendMsg("系統", `🏆 ${w} 拿到最後一顆！獲勝！`, "system");
+    setHint("遊戲結束，可按「開始 / 重來」或勝利視窗「再來一局」。");
+
+    winWinner.textContent = `🏆 ${w}`;
+    winBack.classList.add("open");
+    winBack.setAttribute("aria-hidden","false");
+    btnWinAgain.focus();
+  }
+
+  async function takeStones(k, actorIndex){
+    if (!started || remaining <= 0) return;
+    k = clampTake(k);
+    if (k > remaining) k = remaining;
+
+    remaining -= k;
+    appendMsg(playersLabel[actorIndex] + (aiPlayers[actorIndex] ? " 🤖" : ""), `拿走 ${k} 顆（剩 ${remaining}）`);
+
+    remainTopEl.textContent = String(remaining);
+    remainNumEl.textContent = String(remaining);
+    renderPile();
+    renderPracticeBadge();
+    setControls();
+
+    if (remaining <= 0){
+      endGame(actorIndex);
+      return;
+    }
+
+    nextTurn(`上一手拿 ${k} 顆`);
+  }
+
+  // ===== AI：思考感（隨機一句話）+ 既有 winner 邏輯 =====
+  // AI 使用 winningTable：優先把對手送到「危險位」（對手輸位）
+  const aiPhrases = [
+    "這手棋有點難辦...",
+    "讓我想想...",
+    "我好像看到路了。",
+    "嗯…要下哪一步呢？",
+    "看來我贏定了！",
+    "這局很刺激！"
+  ];
+
+  function aiChooseMove(){
+    // 目標：選 k 使得 remaining-k 是對手的輸位（winningTable=false）
+    for (let k=MIN_TAKE;k<=MAX_TAKE;k++){
+      if (remaining - k >= 0 && winningTable[remaining - k] === false) return k;
+    }
+    // 找不到就隨機合法
+    const maxK = Math.min(MAX_TAKE, remaining);
+    return 1 + Math.floor(Math.random() * maxK);
+  }
+
+  async function aiAutoMove(){
+    if (!started || remaining <= 0) return;
+    if (demoOn) return;
+    if (!aiPlayers[turn]) return;
+
+    aiBusy = true;
+    setControls();
+    setHint(`輪到 ${playersLabel[turn]} 🤖：思考中…`);
+
+    // 隨機「講一句」增加生命力
+    const phrase = aiPhrases[Math.floor(Math.random() * aiPhrases.length)];
+    appendMsg(playersLabel[turn] + " 🤖", phrase);
+
+    // 延遲（思考感）
+    await sleep(650 + Math.floor(Math.random() * 550));
+
+    if (!started || remaining <= 0) { aiBusy = false; setControls(); return; }
+
+    const k = aiChooseMove();
+    aiBusy = false;
+    await takeStones(k, turn);
+  }
+
+  function maybeRunAI(){
+    if (!started) return;
+    if (demoOn) return;
+    if (aiPlayers[turn]) aiAutoMove();
+  }
+
+
+  // ===== 教學模式：步驟定義 =====
+  function takeSnapshot(){
+    return {
+      playerCount, started, turn, remaining,
+      scores: scores.slice(),
+      aiPlayers: aiPlayers.slice(),
+      aiBusy,
+      pcSel: playerCountEl.value,
+      aiP2: aiP2.checked,
+      aiP3: aiP3.checked,
+      practice: togglePractice.checked,
+      chatHTML: chat.innerHTML,
+      winOpen: winBack.classList.contains("open"),
+      statusText: statusEl.textContent,
+      hintText: hintEl.textContent,
+    };
+  }
+
+  function restoreSnapshot(s){
+    if (!s) return;
+    playerCount = Number(s.playerCount);
+    started = !!s.started;
+    turn = Number(s.turn);
+    remaining = Number(s.remaining);
+    scores = s.scores.slice();
+    aiPlayers = s.aiPlayers.slice();
+    aiBusy = !!s.aiBusy;
+
+    playerCountEl.value = s.pcSel;
+    aiP2.checked = !!s.aiP2;
+    aiP3.checked = !!s.aiP3;
+    togglePractice.checked = !!s.practice;
+
+    chat.innerHTML = s.chatHTML || "";
+    setStatus(s.statusText || (started ? "進行中" : "尚未開始"));
+    setTurnUI();
+    renderScores();
+    renderPile();
+    renderPracticeBadge();
+
+    remainTopEl.textContent = String(remaining);
+    remainNumEl.textContent = String(remaining);
+    setHint(s.hintText || "");
+    setControls();
+
+    if (s.winOpen){
+      winBack.classList.add("open");
+      winBack.setAttribute("aria-hidden","false");
+    } else {
+      winBack.classList.remove("open");
+      winBack.setAttribute("aria-hidden","true");
+    }
+  }
+
+  function demoPrepare(){
+    demoSnapshot = takeSnapshot();
+
+    // 進入一個「乾淨示範局」（不影響原局，結束會還原）
+    playerCountEl.value = "2";
+    aiP2.checked = true;
+    aiP3.checked = false;
+    togglePractice.checked = false;
+
+    playerCount = 2;
+    started = false;
+    aiBusy = false;
+    turn = 0;
+    remaining = TOTAL_STONES;
+
+    clearChat();
+    appendMsg("系統", "🎬 教學模式：以下會用高亮框一步一步說明怎麼玩（結束後會還原你原本的狀態）。", "system");
+
+    winBack.classList.remove("open");
+    winBack.setAttribute("aria-hidden","true");
+
+    setStatus("尚未開始");
+    setTurnUI();
+    renderScores();
+    renderPile();
+    renderPracticeBadge();
+    remainTopEl.textContent = String(remaining);
+    remainNumEl.textContent = String(remaining);
+    setHint("教學模式啟動中…");
+    setControls();
+  }
+
+  const demoSteps = [
+    {
+      title: "🎬 教學模式：快速導覽",
+      text: "規則：桌上 30 顆石頭，輪流拿 1～3 顆，<b>拿到最後一顆的人獲勝</b>。<br><br>按「下一步」開始看重點。",
+      sel: null
+    },
+    {
+      title: "① 開始 / 重來",
+      text: "按這個按鈕開始新局或重來。<br><br>（教學模式不會影響你原本的局勢，結束會自動還原。）",
+      sel: "#btnNew"
+    },
+    {
+      title: "② 玩家數與 AI",
+      text: "在「關主設定」裡可以選 2 或 3 人（預設 2 人）。<br>也能把 2P / 3P 設為 AI 🤖 來練習對戰。",
+      sel: "#btnHost",
+      also: ["#aiP2", "#aiP3"]
+    },
+    {
+      title: "③ 這是石頭堆",
+      text: "小圓點代表石頭。<br>每拿走一些，剩下的數字會跟著變。<br><br>你只要盯著「剩餘石頭」就能掌握局勢。",
+      sel: "#pile",
+      placeBelow: true
+    },
+    {
+      title: "④ 你的動作：拿 1～3 顆",
+      text: "輪到你時，就按其中一個按鈕：拿 1、2 或 3 顆。<br><br>拿多少會影響下一位的局面。",
+      sel: ".actions"
+    ,
+      placeBelow: true
+    },
+    {
+      title: "⑤ 練習模式（安全/危險提示）",
+      text: "在「關主設定」中開啟「練習模式」後，系統會提示目前局面：<br>🟢 <b>安全</b>＝有必勝策略<br>🔴 <b>危險</b>＝對手夠聰明你會輸<br><br>這很適合教孩子學『必勝點』！",
+      sel: "#btnHost",
+      also: ["#practiceBadge"]
+    },
+    {
+      title: "✅ 完成！開始試玩",
+      text: "教學結束！<br><br>你可以：<br>1) 按「開始 / 重來」開始新局<br>2) 視需要開啟練習模式<br>3) 讓 2P / 3P 當 AI 來練習<br><br>想再看一次教學，隨時按右上角「🎬 教學模式」。",
+      sel: null
+    },
+  ];
+
+  function demoBuildDots(){
+    demoDots.innerHTML = "";
+    for (let i=0;i<demoSteps.length;i++){
+      const d = document.createElement("span");
+      d.className = "dot" + (i===demoStep ? " on" : "");
+      demoDots.appendChild(d);
+    }
+  }
+
+  function demoSetSpot(targetEl){
+    if (!targetEl){
+      demoSpot.style.display = "none";
+      demoSpot.style.left = "-9999px";
+      demoSpot.style.top = "-9999px";
+      demoSpot.style.width = "0px";
+      demoSpot.style.height = "0px";
+      return null;
+    }
+    const rect = targetEl.getBoundingClientRect();
+    const pad = 8;
+    const left = Math.max(10, rect.left - pad);
+    const top = Math.max(10, rect.top - pad);
+    const width = Math.min(window.innerWidth - 20, rect.width + pad*2);
+    const height = Math.min(window.innerHeight - 20, rect.height + pad*2);
+
+    demoSpot.style.display = "block";
+    demoSpot.style.left = left + "px";
+    demoSpot.style.top = top + "px";
+    demoSpot.style.width = width + "px";
+    demoSpot.style.height = height + "px";
+    return {left, top, width, height, bottom: top + height};
+  }
+
+  function demoPositionCard(spotRect, placeBelow){
+    demoCard.style.position = "";
+    demoCard.style.left = "";
+    demoCard.style.top = "";
+    demoCard.style.transform = "";
+    demoOverlay.style.alignItems = "center";
+
+    if (placeBelow && spotRect){
+      const top = Math.min(window.innerHeight - 12, spotRect.bottom + 18);
+      demoOverlay.style.alignItems = "flex-start";
+      demoCard.style.position = "fixed";
+      demoCard.style.left = "50%";
+      demoCard.style.top = `${top}px`;
+      demoCard.style.transform = "translateX(-50%)";
+    }
+  }
+
+  function demoFindTarget(step){
+    const primary = step.sel ? document.querySelector(step.sel) : null;
+    const alsoEls = (step.also || []).map(s => document.querySelector(s)).filter(Boolean);
+    return {primary, alsoEls};
+  }
+
+  function demoScrollTo(el){
+    if (!el) return;
+    try{
+      el.scrollIntoView({behavior:"smooth", block:"center", inline:"nearest"});
+    }catch(_){
+      const r = el.getBoundingClientRect();
+      window.scrollTo(0, window.scrollY + r.top - 120);
+    }
+  }
+
+  function showDemoStep(){
+    const step = demoSteps[demoStep];
+    demoTitle.textContent = step.title;
+    demoText.innerHTML = step.text;
+
+    demoPrev.disabled = demoStep === 0;
+    demoNext.textContent = (demoStep === demoSteps.length - 1) ? "完成" : "下一步";
+
+    demoBuildDots();
+
+    const {primary, alsoEls} = demoFindTarget(step);
+    if (primary) demoScrollTo(primary);
+    if (alsoEls.length) demoScrollTo(alsoEls[0]);
+
+    const spotRect = demoSetSpot(primary);
+    demoPositionCard(spotRect, !!step.placeBelow);
+
+    // 純示範：到練習模式那一步先開一下（不會寫入原局，因為結束會還原）
+    if (step.sel === "#togglePractice"){
+      togglePractice.checked = true;
+      renderPracticeBadge();
+    }
+  }
+
+  function startDemo(){
+    if (demoOn) return;
+    demoOn = true;
+    demoStep = 0;
+    demoPrepare();
+    document.body.classList.add("demoOn");
+    demoOverlay.setAttribute("aria-hidden","false");
+    showDemoStep();
+  }
+
+  function endDemo(){
+    if (!demoOn) return;
+    demoOn = false;
+    document.body.classList.remove("demoOn");
+    demoOverlay.setAttribute("aria-hidden","true");
+    demoSetSpot(null);
+    restoreSnapshot(demoSnapshot);
+    demoSnapshot = null;
+  }
+
+  // DEMO controls
+  btnDemo.addEventListener("click", startDemo);
+  demoSkip.addEventListener("click", endDemo);
+  demoOverlay.addEventListener("click", (e)=>{ if (e.target === demoOverlay) endDemo(); });
+
+  demoPrev.addEventListener("click", ()=>{
+    if (demoStep <= 0) return;
+    demoStep -= 1;
+    showDemoStep();
+  });
+  demoNext.addEventListener("click", ()=>{
+    if (demoStep >= demoSteps.length - 1){
+      endDemo();
+      return;
+    }
+    demoStep += 1;
+    showDemoStep();
+  });
+
+  window.addEventListener("resize", ()=>{ if (demoOn) showDemoStep(); });
+
+
+
+  // ===== 開局 =====
+  function readAISettings(){
+    aiPlayers = [false,false,false];
+    // 1P 固定真人
+    aiPlayers[1] = !!aiP2.checked;
+    aiPlayers[2] = (playerCount === 3) ? !!aiP3.checked : false;
+  }
+
+  function startGame(){
+    winBack.classList.remove("open");
+    winBack.setAttribute("aria-hidden","true");
+
+    playerCount = Number(hostPlayerCount.value);
+    playerCountEl.value = String(playerCount);
+    turn = 0;
+    remaining = TOTAL_STONES;
+    winningTable = computeWinningTable(TOTAL_STONES);
+    started = true;
+    aiBusy = false;
+
+    readAISettings();
+
+    clearChat();
+    appendMsg("系統", `新局開始：桌上 30 顆｜玩家數 ${playerCount}P｜1P 先手`, "system");
+    for (let p=1;p<playerCount;p++){
+      if (aiPlayers[p]) appendMsg("系統", `${playersLabel[p]} 設為 AI 🤖`, "system");
+    }
+
+    setStatus("進行中");
+    setTurnUI();
+    renderScores();
+    renderPile();
+    renderPracticeBadge();
+
+    remainTopEl.textContent = String(remaining);
+    remainNumEl.textContent = String(remaining);
+
+    setHint(`輪到 ${playersLabel[turn]}。請選擇拿 1–3 顆。`);
+    setControls();
+
+    maybeRunAI();
+  }
+
+
+  function refreshSettingsSummary(){
+    const ai2 = aiP2.checked ? "🤖" : "人";
+    const ai3 = (Number(hostPlayerCount.value)===3 && aiP3.checked) ? "🤖" : "人";
+    const who = (Number(hostPlayerCount.value)===3) ? `2P:${ai2}｜3P:${ai3}` : `2P:${ai2}`;
+    settingsSummaryEl.textContent = `${hostPlayerCount.value}人｜總數 30｜每次 1–3｜${who}`;
+  }
+
+  function openHost(){
+    hostBack.classList.add("open");
+    hostBack.setAttribute("aria-hidden","false");
+  }
+  function closeHost(){
+    hostBack.classList.remove("open");
+    hostBack.setAttribute("aria-hidden","true");
+  }
+
+  function applyHostSettings(){
+    // 同步玩家數
+    const pc = Number(hostPlayerCount.value);
+    playerCountEl.value = String(pc);
+
+    // 同步總數與每次可拿
+    const total = Math.max(5, Math.min(200, Number(hostTotal.value || 30)));
+    const maxTake = Math.max(1, Math.min(10, Number(hostMaxTake.value || 3)));
+
+    TOTAL_STONES = total;
+    MAX_TAKE = maxTake;
+
+    
+    lastStoneRed = !!toggleLastRed.checked;
+// 依玩家數開關 3P AI
+    aiP3.disabled = (pc !== 3);
+    if (pc !== 3) aiP3.checked = false;
+
+    // 重建 UI
+    winningTable = computeWinningTable(TOTAL_STONES);
+    remaining = TOTAL_STONES;
+    started = false;
+    aiBusy = false;
+    turn = 0;
+
+    rebuildTakeButtons();
+    renderPile();
+    renderPracticeBadge();
+    setTurnUI();
+    renderScores();
+    remainTopEl.textContent = String(remaining);
+    remainNumEl.textContent = String(remaining);
+    setStatus("尚未開始");
+    setHint("已套用關主設定。請按「開始 / 重來」。");
+    refreshSettingsSummary();
+    setControls();
+    closeHost();
+  }
+
+
+  // ===== 事件 =====
+  btnNew.addEventListener("click", startGame);
+
+  btnHost.addEventListener("click", openHost);
+  btnHostClose.addEventListener("click", closeHost);
+  hostBack.addEventListener("click", (e)=>{ if (e.target===hostBack) closeHost(); });
+
+  // 變更玩家數時，3P AI 才可用
+  hostPlayerCount.addEventListener("change", ()=>{ 
+    const is3 = (Number(hostPlayerCount.value)===3);
+    aiP3.disabled = !is3;
+    if (!is3) aiP3.checked = false;
+    refreshSettingsSummary();
+  });
+
+  btnHostApply.addEventListener("click", applyHostSettings);
+  toggleLastRed.addEventListener("change", ()=>{ lastStoneRed = !!toggleLastRed.checked; renderPile(); });
+
+  togglePractice.addEventListener("change", () => {
+    renderPracticeBadge();
+    appendMsg("系統", togglePractice.checked ? "✅ 練習模式已開啟（顯示安全/危險）" : "⛔ 練習模式已關閉", "system");
+  });
+
+  playerCountEl.addEventListener("change", () => {
+    const pc = Number(playerCountEl.value);
+    aiP3.disabled = pc !== 3;
+    if (pc !== 3) aiP3.checked = false;
+    appendMsg("系統", "⚙️ 玩家數/AI 設定已變更：按「開始 / 重來」生效。", "system");
+  });
+
+  aiP2.addEventListener("change", () => appendMsg("系統", "⚙️ AI 設定已變更：按「開始 / 重來」生效。", "system"));
+  aiP3.addEventListener("change", () => appendMsg("系統", "⚙️ AI 設定已變更：按「開始 / 重來」生效。", "system"));
+
+  // win modal
+  btnWinAgain.addEventListener("click", startGame);
+  btnWinClose.addEventListener("click", () => {
+    winBack.classList.remove("open");
+    winBack.setAttribute("aria-hidden","true");
+  });
+  winBack.addEventListener("click", (e) => {
+    if (e.target === winBack){
+      winBack.classList.remove("open");
+      winBack.setAttribute("aria-hidden","true");
+    }
+  });
+
+  // 初始畫面
+  if (toggleLastRed) lastStoneRed = !!toggleLastRed.checked;
+  aiP3.disabled = (Number(hostPlayerCount.value)!==3);
+  rebuildTakeButtons();
+  renderScores();
+  renderPile();
+  renderPracticeBadge();
+  refreshSettingsSummary();
+
+  // 進入頁面時自動啟動教學模式（可隨時按右上角再開）
+  setTimeout(()=>{ try{ startDemo(); }catch(e){} }, 180);
+
+})();
+</script>
+</body>
+</html>

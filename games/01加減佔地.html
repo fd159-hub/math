@@ -1,0 +1,1005 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>加減佔地桌遊（3×4）｜v2.0</title>
+  <style>
+    :root{
+      --bg:#fafafa; --card:#fff; --line:#d7d7d7; --text:#111; --muted:#666;
+      --p1:#2563eb; --p2:#ef4444;
+      --p1Fill: rgba(37,99,235,.18);
+      --p2Fill: rgba(239,68,68,.18);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Arial,"Noto Sans TC",sans-serif;background:var(--bg);color:var(--text)}
+    .wrap{max-width:1100px;margin:0 auto;padding:14px}
+    h1{margin:6px 0 10px;font-size:20px}
+    .grid{display:grid;gap:12px}
+    @media (min-width: 860px){ .grid{grid-template-columns: 1.15fr .85fr;} }
+    .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+    .panel.boardPanel{ padding-bottom: 96px; }
+
+    .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    label{font-size:14px;color:var(--muted)}
+    input,select,button{
+      font-size:16px;border-radius:12px;border:1px solid var(--line);
+      padding:10px 12px;background:#fff;
+    }
+    button{cursor:pointer}
+    button.primary{background:#111;color:#fff;border-color:#111}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    .pill{padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:13px;color:var(--muted)}
+    .pill strong{color:var(--text)}
+    .right{margin-left:auto}
+    .hr{height:1px;background:var(--line);margin:10px 0}
+    .hint{font-size:13px;color:var(--muted);line-height:1.45}
+
+    .board{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
+    .cell{
+      border:1px solid var(--line);border-radius:16px;background:#fff;
+      padding:10px;min-height:88px;display:flex;flex-direction:column;justify-content:space-between;
+      user-select:none; transition: background-color .15s ease, transform .12s ease;
+    }
+    .cell.clickable{cursor:pointer}
+    .cell.clickable:hover{outline:3px solid rgba(0,0,0,.08)}
+    .num{font-size:28px;font-weight:900}
+    .owner{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px}
+
+    .cell.owned-p1{ background: var(--p1Fill); }
+    .cell.owned-p2{ background: var(--p2Fill); }
+
+    .badge{
+      padding:4px 8px;border-radius:999px;border:1px solid var(--line);
+      background:#fff;font-weight:700;
+    }
+    .badge.p1{border-color:rgba(37,99,235,.35); color:var(--p1)}
+    .badge.p2{border-color:rgba(239,68,68,.35); color:var(--p2)}
+
+    @keyframes pop { 0%{transform:scale(1)} 35%{transform:scale(1.05)} 100%{transform:scale(1)} }
+    @keyframes shake {
+      0%{transform:translateX(0)} 20%{transform:translateX(-4px)} 40%{transform:translateX(4px)}
+      60%{transform:translateX(-3px)} 80%{transform:translateX(3px)} 100%{transform:translateX(0)}
+    }
+    .cell.anim-pop{animation:pop .22s ease}
+    .cell.anim-shake{animation:shake .28s ease}
+
+    .status{
+      margin-top:10px;
+      border:1px solid var(--line);border-radius:14px;padding:10px 12px;
+      background:#fff;min-height:54px;display:flex;align-items:center;gap:10px;
+      position: sticky;
+      bottom: 10px;
+      z-index: 3;
+      box-shadow:0 6px 18px rgba(0,0,0,.08);
+    }
+    .dot{width:12px;height:12px;border-radius:999px;background:#bbb}
+    .dot.p1{background:var(--p1)}
+    .dot.p2{background:var(--p2)}
+
+    .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+    .card{
+      border:1px solid var(--line);border-radius:16px;background:#fff;
+      padding:12px;min-height:92px;display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;
+      cursor:pointer; user-select:none;
+    }
+    .card.disabled{opacity:.55;cursor:not-allowed}
+    .card .t{font-size:12px;color:var(--muted);text-align:center;line-height:1.3}
+    .card .v{font-size:34px;font-weight:900}
+    .card.face-down .v{color:transparent}
+    .card.face-down{background:linear-gradient(135deg, rgba(0,0,0,.05), rgba(0,0,0,.02)); position:relative; overflow:hidden}
+    .card.face-down::after{
+      content:""; position:absolute; inset:-30px;
+      background:repeating-linear-gradient(45deg, rgba(0,0,0,.08) 0 10px, rgba(0,0,0,.02) 10px 20px);
+      transform:rotate(10deg);
+    }
+
+    /* 關主設定（折疊）- 放在模式旁 */
+    details.host{
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#fff;
+      overflow:hidden;
+    }
+    details.host > summary{
+      list-style:none;
+      cursor:pointer;
+      padding:10px 12px;
+      font-weight:900;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      user-select:none;
+      white-space:nowrap;
+    }
+    details.host > summary::-webkit-details-marker{display:none}
+    .hostBadge{
+      font-size:12px;color:var(--muted);font-weight:700;
+      border:1px solid var(--line);border-radius:999px;padding:2px 8px;background:#fff;
+    }
+    .hostBody{padding:10px 12px;border-top:1px solid var(--line);min-width: 260px}
+    .toggle{
+      display:flex;align-items:center;gap:8px;
+      padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:#fff;
+      font-size:14px;color:var(--muted);
+    }
+    .toggle input{width:18px;height:18px}
+
+    .practice{
+      margin-top:10px;
+      border:1px dashed var(--line);
+      border-radius:16px;
+      padding:10px;
+      background:#fff;
+      display:none;
+    }
+    .practice h3{margin:0 0 8px;font-size:14px}
+    .prLine{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:6px 0;flex-wrap:wrap}
+    .prExpr{font-weight:900}
+    .prAns{color:var(--muted);font-weight:700}
+    .prBtn{padding:7px 10px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:14px}
+    .practice .miniHint{margin-top:6px;font-size:12px;color:var(--muted)}
+
+    .modal{
+      position:fixed;inset:0;background:rgba(0,0,0,.45);
+      display:none;align-items:flex-end;justify-content:center;padding:14px;
+      z-index: 99;
+    }
+    .modal.show{display:flex}
+    .modal .box{
+      width:min(640px,100%);
+      background:#fff;border-radius:18px;border:1px solid var(--line);
+      padding:14px;box-shadow:0 12px 30px rgba(0,0,0,.25);
+      margin-bottom:10px;
+    }
+    .modal h2{margin:4px 0 8px;font-size:18px}
+    .modal p{margin:6px 0;color:#222;line-height:1.5;white-space:pre-line}
+    .modal .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>加減佔地（3×4）｜v2.0</h1>
+
+  <div class="grid">
+    <!-- Left -->
+    <div class="panel boardPanel">
+      <div class="row">
+        <div class="pill">回合：<strong id="roundNo">1</strong> / 12</div>
+        <div class="pill">玩家1：<strong id="p1NameLabel">玩家1</strong>（<span style="color:var(--p1);font-weight:900">藍</span>）</div>
+        <div class="pill">玩家2：<strong id="p2NameLabel">玩家2</strong>（<span style="color:var(--p2);font-weight:900">紅</span>）</div>
+        <div class="pill right">比分：<strong><span id="p1Score">0</span> : <span id="p2Score">0</span></strong></div>
+      </div>
+
+      <div class="board" id="board"></div>
+
+      <div class="status">
+        <div class="dot" id="turnDot"></div>
+        <div id="statusText">請先在右側按「開始新遊戲」。</div>
+      </div>
+
+      <div class="hr"></div>
+      <div class="hint">
+        ✅ 點錯有 2 次機會：第 1 次只給策略提示；第 2 次才公布算式與原因。<br/>
+        ✅ 若本回合其實「沒有可選數字」，第 2 次會告訴你要按 Pass（跳過）。
+      </div>
+    </div>
+
+    <!-- Right -->
+    <div class="panel">
+      <!-- 模式 + 關主設定（同一列） -->
+      <div class="row">
+        <label>模式</label>
+        <select id="mode">
+          <option value="ai">1人 vs 電腦</option>
+          <option value="pvp">2人對戰</option>
+        </select>
+
+        <details class="host" id="hostSettings">
+          <summary>
+            🎛️ 關主設定
+            <span class="hostBadge">收起</span>
+          </summary>
+          <div class="hostBody">
+            <div class="row" style="margin-bottom:10px">
+              <div class="toggle">
+                <input type="checkbox" id="soundOn" checked />
+                <span>🔊 音效</span>
+              </div>
+              <div class="toggle">
+                <input type="checkbox" id="fastOn" />
+                <span>⚡ 快速（AI）</span>
+              </div>
+              <div class="toggle">
+                <input type="checkbox" id="practiceOn" />
+                <span>🧠 練習</span>
+              </div>
+            </div>
+
+            <div class="row">
+              <label>練習難度</label>
+              <select id="practiceLevel">
+                <option value="both">加法 + 大−小</option>
+                <option value="add">只練加法</option>
+                <option value="sub">只練大−小</option>
+              </select>
+            </div>
+
+            <div class="hint" style="margin-top:10px">
+              快速模式只影響「電腦」動作與提示停留時間；不影響學生回合。
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <label>玩家1</label>
+        <input id="p1Name" value="玩家1" maxlength="10" />
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label>玩家2</label>
+        <input id="p2Name" value="玩家2" maxlength="10" />
+      </div>
+
+      <div class="row" style="margin-top:10px">
+        <button class="primary" id="btnStart">開始新遊戲（重排地圖）</button>
+        <button id="btnReset">重置佔領（不重排）</button>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="row">
+        <div class="pill">本回合剩餘機會：<strong id="triesLeft">-</strong></div>
+        <button id="btnPass" class="primary" style="margin-left:auto" disabled>Pass（跳過）</button>
+      </div>
+
+      <div class="cards">
+        <div class="card face-down" id="cardA">
+          <div class="t" id="cardATitle">疊1（點此翻牌｜剩 12 張）</div><div class="v">A</div>
+        </div>
+        <div class="card face-down" id="cardB">
+          <div class="t" id="cardBTitle">疊2（點此翻牌｜剩 12 張）</div><div class="v">B</div>
+        </div>
+      </div>
+
+      <div class="practice" id="practiceBox">
+        <h3>🧠 練習小區（翻完兩張牌才會出現）</h3>
+        <div class="prLine" id="prAddRow">
+          <div class="prExpr" id="prAdd">加法：? + ? = ?</div>
+          <div class="prAns" id="prAddAns">（先想想）</div>
+          <button class="prBtn" id="prAddBtn">看答案</button>
+        </div>
+        <div class="prLine" id="prSubRow">
+          <div class="prExpr" id="prSub">大−小：? − ? = ?</div>
+          <div class="prAns" id="prSubAns">（先想想）</div>
+          <button class="prBtn" id="prSubBtn">看答案</button>
+        </div>
+        <div class="miniHint">提示：先算「加法」，再算「大−小」（不會變負數）。</div>
+      </div>
+
+      <div class="hr"></div>
+      <div class="hint">
+        兩疊牌面（各 12 張）：<strong>0、1、2、3、4、5、6、7、8、9、14、15</strong><br/>
+        ※ 剩餘張數會在「兩張都翻完」後才扣 1。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal" id="modal">
+  <div class="box">
+    <h2 id="modalTitle">提示</h2>
+    <p id="modalBody">內容</p>
+    <div class="actions">
+      <button id="modalCancel">取消</button>
+      <button class="primary" id="modalOk">好</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (id)=>document.getElementById(id);
+
+  const boardEl = $("board");
+  const statusText = $("statusText");
+  const turnDot = $("turnDot");
+  const roundNoEl = $("roundNo");
+  const p1ScoreEl = $("p1Score");
+  const p2ScoreEl = $("p2Score");
+  const triesLeftEl = $("triesLeft");
+
+  const modeEl = $("mode");
+  const p1NameEl = $("p1Name");
+  const p2NameEl = $("p2Name");
+  const p1NameLabel = $("p1NameLabel");
+  const p2NameLabel = $("p2NameLabel");
+
+  const btnStart = $("btnStart");
+  const btnReset = $("btnReset");
+  const btnPass  = $("btnPass");
+
+  const cardAEl = $("cardA");
+  const cardBEl = $("cardB");
+  const cardATitle = $("cardATitle");
+  const cardBTitle = $("cardBTitle");
+  const cardAVal = cardAEl.querySelector(".v");
+  const cardBVal = cardBEl.querySelector(".v");
+
+  // host settings
+  const hostSettings = $("hostSettings");
+  const hostBadge = hostSettings.querySelector(".hostBadge");
+  const soundOnEl = $("soundOn");
+  const fastOnEl = $("fastOn");
+  const practiceOnEl = $("practiceOn");
+  const practiceLevelEl = $("practiceLevel");
+
+  // practice
+  const practiceBox = $("practiceBox");
+  const prAddRow = $("prAddRow");
+  const prSubRow = $("prSubRow");
+  const prAdd = $("prAdd");
+  const prSub = $("prSub");
+  const prAddAns = $("prAddAns");
+  const prSubAns = $("prSubAns");
+  const prAddBtn = $("prAddBtn");
+  const prSubBtn = $("prSubBtn");
+
+  // modal
+  const modal = $("modal");
+  const modalTitle = $("modalTitle");
+  const modalBody = $("modalBody");
+  const modalOk = $("modalOk");
+  const modalCancel = $("modalCancel");
+
+  let dialogResolve = null;
+  function showDialog({title, body, okText="好", cancelText=null}){
+    modalTitle.textContent = title;
+    modalBody.textContent = body;
+    modalOk.textContent = okText;
+
+    if(cancelText){
+      modalCancel.style.display = "";
+      modalCancel.textContent = cancelText;
+    }else{
+      modalCancel.style.display = "none";
+    }
+    modal.classList.add("show");
+    return new Promise(res => { dialogResolve = res; });
+  }
+  function closeDialog(result){
+    modal.classList.remove("show");
+    if(dialogResolve){ dialogResolve(result); dialogResolve = null; }
+  }
+  modalOk.addEventListener("click", ()=> closeDialog(true));
+  modalCancel.addEventListener("click", ()=> closeDialog(false));
+
+  hostSettings.addEventListener("toggle", ()=>{
+    hostBadge.textContent = hostSettings.open ? "展開" : "收起";
+  });
+
+  // ===== sound =====
+  let audioCtx = null;
+  function ensureAudio(){
+    if(!soundOnEl.checked) return;
+    if(!audioCtx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return;
+      audioCtx = new AC();
+    }
+    if(audioCtx.state === "suspended"){
+      audioCtx.resume().catch(()=>{});
+    }
+  }
+  function tone(freq=440, ms=90, type="sine", gain=0.06){
+    if(!soundOnEl.checked) return;
+    ensureAudio();
+    if(!audioCtx) return;
+
+    const t0 = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t0);
+
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + ms/1000);
+
+    osc.connect(g);
+    g.connect(audioCtx.destination);
+    osc.start(t0);
+    osc.stop(t0 + ms/1000 + 0.02);
+  }
+  function playSeq(seq){
+    let t = 0;
+    for(const n of seq){
+      setTimeout(()=>tone(n.f, n.ms, n.type, n.g), t);
+      t += (n.dt ?? n.ms);
+    }
+  }
+  const S = {
+    flip(){ playSeq([{f:880,ms:45,type:"triangle",g:.045,dt:55},{f:1175,ms:55,type:"triangle",g:.05,dt:65}]); },
+    claim(){ playSeq([{f:659,ms:70,type:"sine",g:.06,dt:80},{f:784,ms:70,type:"sine",g:.06,dt:80},{f:988,ms:100,type:"sine",g:.06,dt:110}]); },
+    wrong(){ playSeq([{f:330,ms:120,type:"sawtooth",g:.05,dt:130},{f:220,ms:140,type:"sawtooth",g:.05,dt:150}]); },
+    occupied(){ playSeq([{f:440,ms:70,type:"square",g:.045,dt:80},{f:392,ms:90,type:"square",g:.045,dt:100}]); },
+    hint(){ playSeq([{f:988,ms:70,type:"triangle",g:.045,dt:80},{f:1319,ms:90,type:"triangle",g:.045,dt:100}]); },
+    noOption(){ playSeq([{f:740,ms:90,type:"sine",g:.05,dt:95},{f:554,ms:120,type:"sine",g:.05,dt:125}]); },
+    pass(){ playSeq([{f:523,ms:60,type:"square",g:.035,dt:70},{f:392,ms:90,type:"square",g:.035,dt:100}]); },
+    end(){ playSeq([{f:523,ms:90,type:"sine",g:.06,dt:95},{f:659,ms:90,type:"sine",g:.06,dt:95},{f:784,ms:120,type:"sine",g:.06,dt:130},{f:1047,ms:160,type:"sine",g:.06,dt:170}]); },
+    tick(){ playSeq([{f:988,ms:50,type:"sine",g:.03,dt:55}]); },
+  };
+  document.addEventListener("pointerdown", ensureAudio, {once:true});
+
+  // ===== phrases =====
+  const SAY = {
+    good: ["太棒了！","好厲害！","做得好！","命中目標！","超級棒！","你成功了！"],
+    wrong: ["再想想～","快接近了！","不要急～","再算一次！","差一點點！","再試試看！"],
+    occupied: ["這格有人了！","被佔走啦！","換一格看看！","這格已經有主人了～"],
+    stepHint: [
+      "小策略：先算「加法」，再算「大−小」。",
+      "小策略：大−小不會變負數喔！",
+      "小策略：算完再找地圖上同樣的數字。",
+      "小策略：先找「2～13」範圍的結果。"
+    ],
+    passHint: ["這回合可以按 Pass（跳過）喔！","這回合先跳過，下一回合再來！","這回合沒得選，按 Pass 吧！"]
+  };
+  const pick = (arr)=>arr[Math.floor(Math.random()*arr.length)];
+
+  // fast mode affects AI only
+  const delay = (ms)=> fastOnEl.checked ? Math.max(60, Math.round(ms * 0.45)) : ms;
+  const passHold = ()=> fastOnEl.checked ? 520 : 1000;
+
+  // config
+  const MAP_NUMS = Array.from({length: 12}, (_,i)=> i+2);
+  const DECK_TEMPLATE = [0,1,2,3,4,5,6,7,8,9,14,15];
+  const MAX_TURNS = 12;
+
+  // state
+  let numbers = [];
+  let owner = [];
+  let names = ["玩家1","玩家2"];
+  let vsAI = true;
+
+  let turnPlayer = 0;
+  let turnCount = 1;
+  let gameRunning = false;
+
+  let deck1 = [];
+  let deck2 = [];
+
+  let a=null,b=null,sum=null,diff=null;
+  let drawCommitted=false;
+  let flippedA=false, flippedB=false;
+  let awaitingPick=false;
+  let mistakesLeft=2;
+
+  let cellEls = [];
+
+  function shuffle(arr){
+    for(let i=arr.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [arr[i],arr[j]] = [arr[j],arr[i]];
+    }
+    return arr;
+  }
+  const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+
+  function setStatus(text, who){
+    statusText.textContent = text;
+    turnDot.className = "dot";
+    if(who===0) turnDot.classList.add("p1");
+    else if(who===1) turnDot.classList.add("p2");
+  }
+
+  function setCardsFaceDown(){
+    flippedA=false; flippedB=false;
+    drawCommitted=false;
+    cardAEl.classList.add("face-down");
+    cardBEl.classList.add("face-down");
+    cardAVal.textContent="A";
+    cardBVal.textContent="B";
+    cardAEl.classList.remove("disabled");
+    cardBEl.classList.remove("disabled");
+  }
+
+  function updateTriesUI(){ triesLeftEl.textContent = gameRunning ? String(mistakesLeft) : "-"; }
+  function updateDeckTitles(){
+    cardATitle.textContent = `疊1（點此翻牌｜剩 ${deck1.length} 張）`;
+    cardBTitle.textContent = `疊2（點此翻牌｜剩 ${deck2.length} 張）`;
+  }
+  function enablePassIfReady(){
+    const humanTurn = (!vsAI) || (turnPlayer===0);
+    btnPass.disabled = !(gameRunning && humanTurn && flippedA && flippedB);
+  }
+
+  function exprSum(){ return `${a}+${b}=${sum}`; }
+  function exprDiff(){
+    const hi = Math.max(a,b), lo = Math.min(a,b);
+    return `${hi}-${lo}=${diff}`;
+  }
+  function resultsInRange(){
+    const r = [];
+    if(sum>=2 && sum<=13) r.push({key:"sum", val:sum});
+    if(diff>=2 && diff<=13) r.push({key:"diff", val:diff});
+    const seen = new Set();
+    return r.filter(x => (seen.has(x.val) ? false : (seen.add(x.val), true)));
+  }
+  function score(){
+    const s1 = owner.filter(x=>x===0).length;
+    const s2 = owner.filter(x=>x===1).length;
+    return {s1,s2};
+  }
+
+  function resetPracticeUI(){
+    prAdd.textContent = "加法：? + ? = ?";
+    prSub.textContent = "大−小：? − ? = ?";
+    prAddAns.textContent = "（先想想）";
+    prSubAns.textContent = "（先想想）";
+    prAddBtn.disabled = true;
+    prSubBtn.disabled = true;
+  }
+  function applyPracticeLevelUI(){
+    const lvl = practiceLevelEl.value;
+    prAddRow.style.display = (lvl === "sub") ? "none" : "";
+    prSubRow.style.display = (lvl === "add") ? "none" : "";
+  }
+  function showPracticeIfNeeded(){
+    if(!practiceOnEl.checked || !(flippedA && flippedB)){
+      practiceBox.style.display = "none";
+      return;
+    }
+    practiceBox.style.display = "block";
+    applyPracticeLevelUI();
+
+    const hi = Math.max(a,b), lo = Math.min(a,b);
+    prAdd.textContent = `加法：${a} + ${b} = ?`;
+    prSub.textContent = `大−小：${hi} − ${lo} = ?`;
+
+    prAddBtn.disabled = (practiceLevelEl.value === "sub");
+    prSubBtn.disabled = (practiceLevelEl.value === "add");
+  }
+  practiceOnEl.addEventListener("change", ()=> showPracticeIfNeeded());
+  practiceLevelEl.addEventListener("change", ()=> showPracticeIfNeeded());
+
+  prAddBtn.addEventListener("click", ()=>{
+    if(!(flippedA && flippedB)) return;
+    prAddAns.textContent = `答案：${sum}`;
+    S.tick();
+  });
+  prSubBtn.addEventListener("click", ()=>{
+    if(!(flippedA && flippedB)) return;
+    prSubAns.textContent = `答案：${diff}`;
+    S.tick();
+  });
+
+  async function endGame(reason){
+    if(!gameRunning) return;
+    gameRunning = false;
+
+    btnPass.disabled = true;
+    cardAEl.classList.add("disabled");
+    cardBEl.classList.add("disabled");
+    awaitingPick = false;
+
+    const {s1,s2} = score();
+    p1ScoreEl.textContent = s1;
+    p2ScoreEl.textContent = s2;
+
+    let msg = `${reason}\n\n${names[0]} 佔 ${s1} 格；${names[1]} 佔 ${s2} 格。`;
+    if(s1>s2) msg += `\n🏆 勝者：${names[0]}！`;
+    else if(s2>s1) msg += `\n🏆 勝者：${names[1]}！`;
+    else msg += `\n🤝 平手！`;
+
+    setStatus("遊戲結束，按「開始新遊戲」可再玩一局。", null);
+    S.end();
+    await showDialog({title:"遊戲結束", body:msg, okText:"好"});
+  }
+
+  function animCell(idx, cls){
+    const el = cellEls[idx];
+    if(!el) return;
+    el.classList.remove("anim-pop","anim-shake");
+    void el.offsetWidth;
+    el.classList.add(cls);
+    setTimeout(()=>el.classList.remove(cls), 320);
+  }
+
+  function renderBoard(){
+    boardEl.innerHTML = "";
+    cellEls = [];
+    for(let i=0;i<12;i++){
+      const val = numbers[i];
+      const own = owner[i];
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      if(own===0) cell.classList.add("owned-p1");
+      if(own===1) cell.classList.add("owned-p2");
+
+      if(gameRunning && awaitingPick && ((!vsAI) || turnPlayer===0)){
+        cell.classList.add("clickable");
+      }
+
+      const num = document.createElement("div");
+      num.className = "num";
+      num.textContent = val;
+
+      const o = document.createElement("div");
+      o.className = "owner";
+      if(own===null) o.innerHTML = `<span class="badge">未佔領</span>`;
+      else{
+        const who = (own===0) ? "p1" : "p2";
+        o.innerHTML = `<span class="badge ${who}">${names[own]} 佔領</span>`;
+      }
+
+      cell.appendChild(num);
+      cell.appendChild(o);
+      cell.addEventListener("click", ()=> onCellClick(i));
+      boardEl.appendChild(cell);
+      cellEls[i] = cell;
+    }
+    const {s1,s2} = score();
+    p1ScoreEl.textContent = s1;
+    p2ScoreEl.textContent = s2;
+  }
+
+  function refillDecks(){
+    deck1 = shuffle(DECK_TEMPLATE.slice());
+    deck2 = shuffle(DECK_TEMPLATE.slice());
+    updateDeckTitles();
+  }
+
+  function prepareTurn(){
+    if(deck1.length===0 || deck2.length===0 || turnCount>MAX_TURNS){
+      endGame("兩疊數字卡都用完了（12 回合結束）。");
+      return;
+    }
+
+    a = deck1[deck1.length-1];
+    b = deck2[deck2.length-1];
+    sum = a + b;
+    diff = Math.abs(a - b);
+
+    mistakesLeft = 2;
+    awaitingPick = false;
+
+    setCardsFaceDown();
+    updateTriesUI();
+    updateDeckTitles();
+    resetPracticeUI();
+    showPracticeIfNeeded();
+
+    roundNoEl.textContent = String(turnCount);
+    setStatus(`第 ${turnCount} 回合：輪到 ${names[turnPlayer]}，請翻兩張牌。`, turnPlayer);
+    renderBoard();
+  }
+
+  function commitDrawIfNeeded(){
+    if(drawCommitted) return;
+    if(!(flippedA && flippedB)) return;
+    deck1.pop();
+    deck2.pop();
+    drawCommitted = true;
+    updateDeckTitles();
+  }
+
+  async function afterBothFlipped(){
+    commitDrawIfNeeded();
+    enablePassIfReady();
+
+    awaitingPick = true;
+    renderBoard();
+    showPracticeIfNeeded();
+
+    const base = `已翻牌：${a}、${b}。`;
+    if(resultsInRange().length === 0){
+      setStatus(`${base} 你可以點地圖試試看（有 2 次機會），或按 Pass。`, turnPlayer);
+    }else{
+      setStatus(`${base} ${pick(SAY.stepHint)}（或按 Pass）`, turnPlayer);
+    }
+  }
+
+  function msgWrongFirst(clickedVal, left){
+    return `${pick(SAY.wrong)}\n你點到：${clickedVal}\n剩餘機會：${left}\n\n${pick(SAY.stepHint)}`;
+  }
+  function msgOccupiedFirst(clickedVal, who, left){
+    return `${pick(SAY.occupied)}\n你點到：${clickedVal}\n已被 ${who} 佔領\n剩餘機會：${left}\n\n提示：可以換別格，或先再算一次。`;
+  }
+
+  async function onCellClick(idx){
+    if(!gameRunning || !awaitingPick) return;
+    if(vsAI && turnPlayer===1) return;
+
+    const clickedVal = numbers[idx];
+    const inRangeVals = resultsInRange().map(x=>x.val);
+    const isResult = inRangeVals.includes(clickedVal);
+    const noOptionsThisTurn = (inRangeVals.length === 0);
+
+    if(isResult && owner[idx] !== null){
+      mistakesLeft--;
+      updateTriesUI();
+      S.occupied();
+      animCell(idx, "anim-shake");
+
+      if(mistakesLeft <= 0){
+        awaitingPick = false;
+        renderBoard();
+        await showDialog({
+          title:"本回合結束",
+          body:
+`你已經用完 2 次機會。\n\n這一格已被 ${names[owner[idx]]} 佔領。\n本回合算式是：\n• ${exprSum()}\n• ${exprDiff()}\n\n下次：先算出結果，再找地圖上的數字喔！`,
+          okText:"知道了"
+        });
+        endTurn(`${names[turnPlayer]} 本回合結束。`);
+      }else{
+        await showDialog({title:"再試一次", body:msgOccupiedFirst(clickedVal, names[owner[idx]], mistakesLeft), okText:"好"});
+        setStatus(`再試一次～（剩 ${mistakesLeft} 次）`, turnPlayer);
+      }
+      return;
+    }
+
+    if(!isResult){
+      mistakesLeft--;
+      updateTriesUI();
+      S.wrong();
+      animCell(idx, "anim-shake");
+
+      if(mistakesLeft <= 0){
+        awaitingPick = false;
+        renderBoard();
+
+        if(noOptionsThisTurn){
+          S.noOption();
+          await showDialog({
+            title:"這回合其實沒得選",
+            body:
+`你已經點了 2 次。\n這回合沒有任何落在 2～13 的結果，所以地圖上「沒有可以點的數字」。\n\n本回合算式是：\n• ${exprSum()}\n• ${exprDiff()}\n\n✅ 所以這回合要按「Pass（跳過）」喔！`,
+            okText:"知道了"
+          });
+          endTurn(`${names[turnPlayer]} 本回合結束。`);
+          return;
+        }
+
+        await showDialog({
+          title:"本回合結束",
+          body:
+`你已經用完 2 次機會。\n\n本回合算式是：\n• ${exprSum()}\n• ${exprDiff()}\n\n下次：先算出結果，再找地圖上的數字喔！`,
+          okText:"知道了"
+        });
+        endTurn(`${names[turnPlayer]} 本回合結束。`);
+        return;
+      }
+
+      await showDialog({title:"再試一次", body:msgWrongFirst(clickedVal, mistakesLeft), okText:"好"});
+      setStatus(`再試一次～（剩 ${mistakesLeft} 次）`, turnPlayer);
+      return;
+    }
+
+    owner[idx] = turnPlayer;
+    awaitingPick = false;
+    renderBoard();
+    animCell(idx, "anim-pop");
+    S.claim();
+
+    await showDialog({
+      title: pick(SAY.good),
+      body:`${names[turnPlayer]} 佔領了 ${clickedVal}！`,
+      okText:"確認"
+    });
+
+    endTurn(`${names[turnPlayer]} 佔領 ${clickedVal}。`);
+  }
+
+  async function onPassClick(){
+    if(btnPass.disabled) return;
+    if(!(gameRunning && flippedA && flippedB)) return;
+    const humanTurn = (!vsAI) || (turnPlayer===0);
+    if(!humanTurn) return;
+
+    const confirm = await showDialog({
+      title:"確認跳過",
+      body:`你確定要 Pass（跳過）嗎？\n（如果其實有得選，電腦會用算式提醒你。）`,
+      okText:"確認跳過",
+      cancelText:"取消"
+    });
+    if(!confirm) return;
+
+    const claimable = resultsInRange().filter(r=>{
+      const idx = numbers.indexOf(r.val);
+      return idx>=0 && owner[idx]===null;
+    });
+
+    if(claimable.length > 0){
+      const lines = [];
+      claimable.forEach(r=>{
+        if(r.key==="sum") lines.push(exprSum());
+        if(r.key==="diff") lines.push(exprDiff());
+      });
+
+      S.hint();
+      await showDialog({
+        title:"小提醒（你其實有得選）",
+        body:
+`${pick(SAY.stepHint)}\n\n這回合其實可以用：\n${lines.map(s=>"• "+s).join("\n")}\n\n再找地圖上的數字試試看～`,
+        okText:"知道了"
+      });
+
+      awaitingPick = false;
+      endTurn(`${names[turnPlayer]} Pass。`);
+      return;
+    }
+
+    awaitingPick = false;
+    renderBoard();
+    S.pass();
+    setStatus(`${pick(SAY.passHint)}（真的無可佔）`, turnPlayer);
+    await sleep(1000);
+    endTurn(`${names[turnPlayer]} Pass。`);
+  }
+
+  function endTurn(msg){
+    if(!gameRunning) return;
+
+    turnCount++;
+    if(turnCount > MAX_TURNS){
+      endGame("已完成第 12 回合。");
+      return;
+    }
+
+    turnPlayer = 1 - turnPlayer;
+
+    a=b=sum=diff=null;
+    awaitingPick = false;
+    mistakesLeft = 2;
+
+    setStatus(`${msg} 下一位：${names[turnPlayer]}。`, turnPlayer);
+    prepareTurn();
+
+    if(gameRunning && vsAI && turnPlayer===1){
+      setTimeout(()=> aiTurn(), delay(420));
+    }
+  }
+
+  async function aiTurn(){
+    if(!gameRunning) return;
+
+    flippedA = true;
+    cardAEl.classList.remove("face-down");
+    cardAVal.textContent = a;
+    cardAEl.classList.add("disabled");
+    S.flip();
+
+    await sleep(delay(260));
+
+    flippedB = true;
+    cardBEl.classList.remove("face-down");
+    cardBVal.textContent = b;
+    cardBEl.classList.add("disabled");
+    S.flip();
+
+    await sleep(delay(170));
+
+    commitDrawIfNeeded();
+    enablePassIfReady();
+    showPracticeIfNeeded();
+
+    const claimable = resultsInRange().filter(r=>{
+      const idx = numbers.indexOf(r.val);
+      return idx>=0 && owner[idx]===null;
+    });
+
+    if(claimable.length === 0){
+      awaitingPick = false;
+      renderBoard();
+      S.pass();
+      setStatus(`電腦跳過：${pick(SAY.passHint)}`, 1);
+      await sleep(passHold());
+      endTurn("電腦 Pass。");
+      return;
+    }
+
+    const pickOne = claimable[Math.floor(Math.random()*claimable.length)];
+    const targetVal = pickOne.val;
+    const idx = numbers.indexOf(targetVal);
+
+    owner[idx] = 1;
+    renderBoard();
+    animCell(idx, "anim-pop");
+    S.claim();
+
+    if(fastOnEl.checked){
+      setStatus(`電腦佔領 ${targetVal}！`, 1);
+      await sleep(passHold());
+      endTurn(`電腦佔領 ${targetVal}。`);
+      return;
+    }
+
+    await showDialog({title:"電腦佔領", body:`電腦佔領：${targetVal}`, okText:"確認"});
+    endTurn(`電腦佔領 ${targetVal}。`);
+  }
+
+  async function onFlipA(){
+    if(!gameRunning) return;
+    if(vsAI && turnPlayer===1) return;
+    if(flippedA) return;
+
+    flippedA = true;
+    cardAEl.classList.remove("face-down");
+    cardAVal.textContent = a;
+    cardAEl.classList.add("disabled");
+    S.flip();
+
+    if(flippedA && flippedB) await afterBothFlipped();
+    enablePassIfReady();
+    showPracticeIfNeeded();
+  }
+  async function onFlipB(){
+    if(!gameRunning) return;
+    if(vsAI && turnPlayer===1) return;
+    if(flippedB) return;
+
+    flippedB = true;
+    cardBEl.classList.remove("face-down");
+    cardBVal.textContent = b;
+    cardBEl.classList.add("disabled");
+    S.flip();
+
+    if(flippedA && flippedB) await afterBothFlipped();
+    enablePassIfReady();
+    showPracticeIfNeeded();
+  }
+
+  cardAEl.addEventListener("click", onFlipA);
+  cardBEl.addEventListener("click", onFlipB);
+  btnPass.addEventListener("click", onPassClick);
+
+  function prepareNames(){
+    vsAI = (modeEl.value === "ai");
+    names[0] = (p1NameEl.value || "玩家1").trim().slice(0,10) || "玩家1";
+    names[1] = vsAI ? "電腦" : ((p2NameEl.value || "玩家2").trim().slice(0,10) || "玩家2");
+    p1NameLabel.textContent = names[0];
+    p2NameLabel.textContent = names[1];
+  }
+
+  function startGame(reseed=true){
+    prepareNames();
+    turnCount = 1;
+    turnPlayer = 0;
+
+    numbers = reseed ? shuffle(MAP_NUMS.slice()) : (numbers.length ? numbers : shuffle(MAP_NUMS.slice()));
+    owner = Array(12).fill(null);
+
+    gameRunning = true;
+    refillDecks();
+    prepareTurn();
+  }
+
+  function resetOccupyOnly(){
+    prepareNames();
+    turnCount = 1;
+    turnPlayer = 0;
+
+    if(!numbers.length) numbers = shuffle(MAP_NUMS.slice());
+    owner = Array(12).fill(null);
+
+    gameRunning = true;
+    refillDecks();
+    prepareTurn();
+  }
+
+  btnStart.addEventListener("click", ()=> startGame(true));
+  btnReset.addEventListener("click", ()=> resetOccupyOnly());
+
+  // init
+  numbers = shuffle(MAP_NUMS.slice());
+  owner = Array(12).fill(null);
+  renderBoard();
+  resetPracticeUI();
+  applyPracticeLevelUI();
+  setStatus("請先在右側按「開始新遊戲」。", null);
+})();
+</script>
+</body>
+</html>
